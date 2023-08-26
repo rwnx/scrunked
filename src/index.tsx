@@ -39,6 +39,17 @@ const humanFormat = (value: number) => {
 	return Math.round(value)
 }
 
+const marks = [
+	{ value: getScaleValue(10), label: "10" },
+	{ value: getScaleValue(250), label: "250" },
+	{ value: getScaleValue(1_000), label: "1k" },
+	{ value: getScaleValue(2_500), label: "2.5k" },
+	{ value: getScaleValue(5_000), label: "5k" },
+	{ value: getScaleValue(10_000), label: "10k" },
+	{ value: getScaleValue(15_000), label: "15k" },
+	{ value: getScaleValue(22_000), label: "22k" },
+]
+
 
 const App: FunctionComponent = () => {
 	const [settings, set] = useState<Settings>({
@@ -94,25 +105,25 @@ const App: FunctionComponent = () => {
 	}, [settings, filter.current, player, reverb.current])
 
 
-	useEffect(() => {
-		function queueTimedUpdate() {
-			playbackTick.current = setTimeout(() => {
-				setPlaybackState({
-					time: player.current.sampleTime,
-					state: player.current.state
-				})
-				window.clearTimeout(playbackTick.current)
-				queueTimedUpdate()
+	// useEffect(() => {
+	// 	function queueTimedUpdate() {
+	// 		playbackTick.current = setTimeout(() => {
+	// 			setPlaybackState({
+	// 				time: player.current.sampleTime,
+	// 				state: player.current.state
+	// 			})
+	// 			window.clearTimeout(playbackTick.current)
+	// 			queueTimedUpdate()
 
-			}, 100)
-		}
+	// 		}, 100)
+	// 	}
 
-		queueTimedUpdate()
+	// 	queueTimedUpdate()
 
-		return () => {
-			window.clearTimeout(playbackTick.current)
-		}
-	}, [])
+	// 	return () => {
+	// 		window.clearTimeout(playbackTick.current)
+	// 	}
+	// }, [])
 
 	const handlePlayPauseToggle = () => {
 		if (player.current.state === "started") {
@@ -211,19 +222,10 @@ const App: FunctionComponent = () => {
 					<Grid item xs={9}>
 						<Slider
 							value={getScaleValue(settings.filterCutoff)}
-							max={getScaleValue(filterMax)}
+							max={marks[marks.length-1].value}
 							min={1}
 							step={0.1}
-							marks={[
-								{ value: getScaleValue(10), label: "10" },
-								{ value: getScaleValue(250), label: "250" },
-								{ value: getScaleValue(1_000), label: "1k" },
-								{ value: getScaleValue(2_500), label: "2.5k" },
-								{ value: getScaleValue(5_000), label: "5k" },
-								{ value: getScaleValue(10_000), label: "10k" },
-								{ value: getScaleValue(15_000), label: "15k" },
-								{ value: getScaleValue(22_000), label: "22k" },
-							]}
+							marks={marks}
 							onChange={(e, value) => {
 								if (Array.isArray(value)) throw new Error("single value required")
 								set(mergeSettings({ filterCutoff: getValueFromScale(value) }))
