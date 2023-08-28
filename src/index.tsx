@@ -1,7 +1,7 @@
 import { render, FunctionComponent } from 'preact';
 import "./style.css"
 import { Button, Card, CardContent, Grid, Input, Slider } from '@mui/material';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import * as Tone from 'tone'
 import { ChangeEventHandler } from 'preact/compat';
 
@@ -12,7 +12,6 @@ import { Duration } from 'luxon';
 type Settings = {
 	filterCutoff: number,
 	reverb: number,
-	limit: number,
 	file: File | undefined,
 	nextFile: File | undefined,
 	playback: number,
@@ -34,8 +33,8 @@ const mergeSettings = (next: Partial<Settings>) => (state: Settings) => ({
 })
 
 const humanFormat = (value: number) => {
-	if(value > 99) return `${Math.round(value/10)/10}K`
-	if(value > 999) return `${Math.round(value/1000)}K`
+	if(value > 9999) return `${Math.round(value/1000)}K`
+	if(value > 999) return `${Math.round(value/100)/10}K`
 	return Math.round(value)
 }
 
@@ -51,28 +50,32 @@ const marks = [
 ]
 
 
+
 const App: FunctionComponent = () => {
 	const [settings, set] = useState<Settings>({
 		filterCutoff: filterMax,
 		playback: 1,
 		reverb: 0.1,
-		limit: -1,
 		file: undefined,
 		nextFile: undefined,
 	})
 
-	const filter = useRef(new Tone.Filter(settings.filterCutoff, "lowpass"))
-	const limiter = useRef(new Tone.Limiter(settings.limit))
-	const reverb = useRef(new Tone.Reverb(settings.reverb))
+	const [filter] = useState(new Tone.Filter(settings.filterCutoff, "lowpass"))
+	const [reverb] = useState(new Tone.Reverb(settings.reverb))
 
-	const player = useRef<Tone.Player>(new Tone.Player({ loop: true, autostart: false }).chain(
-		filter.current,
-		reverb.current,
-		limiter.current,
-		Tone.Destination
-	))
+	const [player, setPlayer] = useState<Tone.Player>(new Tone.Player({ loop: true, autostart: false }))
+	useEffect(() => {
+		setPlayer( new Tone.Player({ loop: true, autostart: false }).chain(
+			filter,
+			reverb,
+			Tone.Destination
+		))
 
-	const playbackTick = useRef<number>()
+		return () => {
+			// console.log("Player DISPOSAL")  
+		}
+	}, [filter, reverb])
+
 	const [playbackState, setPlaybackState] = useState<PlaybackState>({ state: "paused", time: 0 })
 
 	const handleFileChange: ChangeEventHandler<HTMLInputElement> = async (onChange) => {
@@ -86,62 +89,35 @@ const App: FunctionComponent = () => {
 		async function syncPlayerSettings() {
 			if (settings.nextFile) {
 				const url = URL.createObjectURL(settings.nextFile)
-				await (await player.current.load(url)).start()
+				await (await player.load(url)).start()
 				set(mergeSettings({ file: settings.nextFile, nextFile: undefined }))
 				setPlaybackState({ state: "started", time: 0 })
 			}
 
-			filter.current.set({ frequency: settings.filterCutoff })
-			player.current.set({ playbackRate: settings.playback })
-			reverb.current.set({ decay: settings.reverb })
+			filter.set({ frequency: settings.filterCutoff })
+			player.set({ playbackRate: settings.playback })
+			reverb.set({ decay: settings.reverb })
 		}
 
 		syncPlayerSettings()
+	}, [settings, filter, player, reverb])
 
-		return () => {
-			// player.current.dispose()
-		}
-
-	}, [settings, filter.current, player, reverb.current])
-
-
-	// useEffect(() => {
-	// 	function queueTimedUpdate() {
-	// 		playbackTick.current = setTimeout(() => {
-	// 			setPlaybackState({
-	// 				time: player.current.sampleTime,
-	// 				state: player.current.state
-	// 			})
-	// 			window.clearTimeout(playbackTick.current)
-	// 			queueTimedUpdate()
-
-	// 		}, 100)
-	// 	}
-
-	// 	queueTimedUpdate()
-
-	// 	return () => {
-	// 		window.clearTimeout(playbackTick.current)
-	// 	}
-	// }, [])
 
 	const handlePlayPauseToggle = () => {
-		if (player.current.state === "started") {
-			player.current.stop()
+		if (player.state === "started") {
+			player.stop()
 			setPlaybackState({
 				time: 0,
 				state: "stopped"
 			})
 
 		} else {
-			player.current.start(0)
+			player.start(0)
 			setPlaybackState({
-				time: player.current.context.currentTime,
+				time: player.context.currentTime,
 				state: "started"
 			})
 		}
-		console.log("handlePlayPauseToggle", playbackState)
-
 	}
 	return (<>
 		<Card sx={{ minWidth: 500, padding: 3 }}>
@@ -157,12 +133,12 @@ const App: FunctionComponent = () => {
 							// TODO: disabled pending implementation
 							disabled={true}
 							value={playbackState.time}
-							max={player.current.buffer.duration}
+							max={player.buffer.duration}
 							min={0}
 							step={1}
 							onChange={(e, value) => {
 								if (Array.isArray(value)) throw new Error("single value required")
-								player.current.stop().start(value)
+								player.stop().start(value)
 								setPlaybackState((state) => ({ ...state, time: value }))
 							}}
 						/>
@@ -234,7 +210,7 @@ const App: FunctionComponent = () => {
 						/>
 					</Grid>
 					<Grid item xs={1}>
-						{humanFormat(settings.filterCutoff)}
+						{humanFormat(settings.filterCutoff)}hz
 					</Grid>
 				</Grid>
 			</CardContent>
