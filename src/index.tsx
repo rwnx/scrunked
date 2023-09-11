@@ -4,7 +4,7 @@ import * as Tone from 'tone'
 import { ChangeEventHandler } from 'preact/compat';
 
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import PauseIcon from '@mui/icons-material/Pause';
+
 import { Duration } from 'luxon';
 import CssBaseline from '@mui/material/CssBaseline';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
@@ -22,19 +22,16 @@ import Link from '@mui/material/Link';
 
 import { useThrottle } from "@uidotdev/usehooks";
 import { getScaleValue, getValueFromScale, humanFormat } from './lib';
+import WaveSurfer from 'wavesurfer.js';
 
 
 type Settings = {
   filterCutoff: number,
   file: File | undefined,
+  duration: number | undefined
   nextFile: File | undefined,
   speed: number,
   state: "ready" | "init"
-}
-
-type PlaybackState = {
-  time: number,
-  state: "started" | "paused" | "stopped"
 }
 
 
@@ -62,6 +59,7 @@ const App: FunctionComponent = () => {
     filterCutoff: filterMax,
     speed: 1,
     file: undefined,
+    duration: undefined,
     nextFile: undefined,
     state: "init"
   })
@@ -72,7 +70,24 @@ const App: FunctionComponent = () => {
   const [filter] = useState(new Tone.Filter(settings.filterCutoff, "lowpass"))
   const [comp] = useState(new Tone.Compressor(-10, 5))
 
-  const [playbackState, setPlaybackState] = useState<PlaybackState>({ state: "paused", time: 0 })
+  const waveformRef = useRef<HTMLDivElement | null>(null)
+  const [waveform, setWaveform] = useState<WaveSurfer | undefined>()
+
+  useEffect((() => {
+    if (!waveformRef.current) return undefined
+    if (waveform) {
+      waveform.destroy()
+    }
+    const next = WaveSurfer.create({
+      container: waveformRef.current,
+      height: 100,
+      waveColor: theme.palette.primary.main,
+      progressColor: theme.palette.text.secondary,
+      interact: false // TODO: enable and fix seeking
+    })
+
+    setWaveform(next)
+  }), [waveformRef.current])
 
   const handleFileChange: ChangeEventHandler<HTMLInputElement> = async (onChange) => {
     const file = onChange.currentTarget?.files?.[0]
@@ -83,7 +98,7 @@ const App: FunctionComponent = () => {
 
   useEffect(() => {
     async function syncPlayerSettings() {
-      if(settings.state === "init") {
+      if (settings.state === "init") {
         player.chain(
           filter,
           comp,
@@ -101,9 +116,9 @@ const App: FunctionComponent = () => {
         const url = URL.createObjectURL(settings.nextFile)
         player.stop()
         await player.load(url)
+        waveform?.loadBlob(settings.nextFile)
         player.start()
-        set(mergeSettings({ file: settings.nextFile, nextFile: undefined }))
-        setPlaybackState({ state: "started", time: 0 })
+        set(mergeSettings({ file: settings.nextFile, nextFile: undefined, duration: player.buffer.duration }))
       }
 
       filter.set({ frequency: settings.filterCutoff })
@@ -111,28 +126,19 @@ const App: FunctionComponent = () => {
     }
 
     syncPlayerSettings()
-  }, [throttledSettings])
+  }, [throttledSettings, waveform])
 
 
   const handlePlayPauseToggle = () => {
     if (!player) return
     if (player.state === "started") {
       player.stop()
-      setPlaybackState({
-        time: 0,
-        state: "stopped"
-      })
-
     } else {
       player.start(0)
-      setPlaybackState({
-        time: player.context.currentTime,
-        state: "started"
-      })
     }
   }
-  const theme = createTheme({})
 
+  const theme = createTheme({})
   return (<>
     <CssBaseline />
     <ThemeProvider theme={theme}>
@@ -143,38 +149,33 @@ const App: FunctionComponent = () => {
         flexDirection="column"
         minHeight="100vh"
       >
-        <Card sx={{ minWidth: 500, padding: 3 }}>
-        <Typography variant="h5" component="div">scrunked</Typography>
-        <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>a toolkit for ruining your favourite music</Typography>
+        <Card sx={{ width: 500, padding: 3 }}>
+          <Typography variant="h5" component="div">scrunked</Typography>
+          <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>a toolkit for ruining your favourite music</Typography>
           <CardContent>
-            <Input type="file" onChange={handleFileChange} accept={"audio/wav, audio/ogg, audio/mp3, audio/flac, audio/acc, audio/mpeg"} />
 
-            <Grid container spacing={2}>
-              <Grid item xs={2} sx={{ marginBottom: 5 }}>
-                <Button disabled={!settings.file} onClick={handlePlayPauseToggle}>{playbackState.state === "paused" ? <PlayArrowIcon /> : <PauseIcon />}</Button>
-              </Grid>
-              <Grid item xs={9}>
-                <Slider
-                  disabled={!settings.file}
-                  value={player.context.currentTime}
-                  max={player.sampleTime}
-                  min={0}
-                  step={1}
-                  onChange={(e, value) => {
-                    if (Array.isArray(value)) throw new Error("single value required")
-                    console.debug("seek", value)
-                    player.start(0, value)
-                  }}
-                />
-              </Grid>
-              <Grid item xs={1}>
-                {Duration.fromObject({ seconds: playbackState.time }).toFormat("mm:ss")}
-              </Grid>
+            <Input type="file" sx={{ width: "100%", pt: 1, pb: 1 }} onChange={handleFileChange} accept={"audio/wav, audio/ogg, audio/mp3, audio/flac, audio/acc, audio/mpeg"} />
+            {settings.file || settings.nextFile ? <>
+              <Grid container spacing={2}>
+                  <Grid item xs={2}>
+                    <Box display="flex" height="100%" justifyContent="center" alignItems="center">
+                      <Button onClick={handlePlayPauseToggle}>{<PlayArrowIcon />}</Button>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={9}>
+                    <Box sx={{ m: 1 }} ref={waveformRef}></Box>
+                  </Grid>
+                  <Grid item xs={1}>
+                    <Box display="flex" height="100%" justifyContent="center" alignItems="center">
+                      {Duration.fromObject({ seconds: settings.duration }).toFormat("mm:ss")}
+                    </Box>
+                  </Grid>
+                </Grid>
 
-            </Grid>
+            </> : null}
 
-            <Grid container spacing={2}>
-              <Grid item xs={2}><span>Speed</span></Grid>
+            <Grid container mt={2} spacing={2}>
+              <Grid item xs={2}>Speed</Grid>
               <Grid item xs={9}>
                 <Slider
                   value={settings.speed}
@@ -221,7 +222,7 @@ const App: FunctionComponent = () => {
         </Card>
         <Typography sx={{ fontSize: 14, mt: 1 }} color="text.secondary">Inspired by <Link href="https://github.com/dumbmatter/screw">Screw</Link> 🔩 Built with love by <Link href="https://github.com/rwnx">Rowan</Link>✨</Typography>
 
-        <Typography sx={{ mt: 1}} color="text.secondary"> <Button href={"https://github.com/rwnx/scrunked"}><GitHubIcon sx={{mr: 0.5}} />view on github</Button> </Typography>
+        <Typography sx={{ mt: 1 }} color="text.secondary"> <Button href={"https://github.com/rwnx/scrunked"}><GitHubIcon sx={{ mr: 0.5 }} />view on github</Button> </Typography>
       </Box>
     </ThemeProvider>
   </>
