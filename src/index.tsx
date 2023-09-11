@@ -185,7 +185,9 @@ const App: FunctionComponent = () => {
                   marks={[
                     { value: 0.1 },
                     { value: 0.5 },
+                    {value: 0.7334, label: "slow"},
                     { value: 1 },
+                    {value: 1.3636, label: "nightcore"},
                     { value: 1.5 },
                     { value: 2 },
                   ]}
