@@ -19,11 +19,15 @@ import createTheme from '@mui/material/styles/createTheme';
 import Typography from '@mui/material/Typography';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import Link from '@mui/material/Link';
+import Checkbox from '@mui/material/Checkbox';
+import Tooltip from '@mui/material/Tooltip';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { useThrottle } from "@uidotdev/usehooks";
 import { getScaleValue, getValueFromScale, humanFormat } from './lib';
 import WaveSurfer from 'wavesurfer.js';
+import LoopIcon from '@mui/icons-material/Loop';
+import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
 
 
 type Settings = {
@@ -32,6 +36,7 @@ type Settings = {
   duration: number | undefined
   nextFile: File | undefined,
   speed: number,
+  loop: boolean,
   state: "ready" | "init"
 }
 
@@ -71,6 +76,7 @@ const App: FunctionComponent = () => {
   const [settings, set] = useState<Settings>({
     filterCutoff: filterMax,
     speed: 1,
+    loop: true,
     file: undefined,
     duration: undefined,
     nextFile: undefined,
@@ -79,9 +85,9 @@ const App: FunctionComponent = () => {
 
   const throttledSettings = useThrottle(settings, 250)
 
-  const [player] = useState(new Tone.Player({ loop: true, autostart: false }))
-  const [filter] = useState(new Tone.Filter(settings.filterCutoff, "lowpass"))
-  const [comp] = useState(new Tone.Compressor(-10, 5))
+  const [player] = useState(new Tone.Player())
+  const [filter] = useState(new Tone.Filter(settings.filterCutoff, "lowpass", -48))
+  const [comp] = useState(new Tone.Compressor(-96, 3))
 
   const waveformRef = useRef<HTMLDivElement | null>(null)
   const [waveform, setWaveform] = useState<WaveSurfer | undefined>()
@@ -96,6 +102,7 @@ const App: FunctionComponent = () => {
       height: 100,
       waveColor: theme.palette.primary.main,
       progressColor: theme.palette.text.secondary,
+      cursorWidth: 0,
       interact: false // TODO: enable and fix seeking
     })
 
@@ -113,8 +120,8 @@ const App: FunctionComponent = () => {
     async function syncPlayerSettings() {
       if (settings.state === "init") {
         player.chain(
-          filter,
           comp,
+          filter,
           Tone.Destination
         )
 
@@ -126,16 +133,16 @@ const App: FunctionComponent = () => {
       }
 
       if (settings.nextFile) {
+        waveform?.loadBlob(settings.nextFile)
         const url = URL.createObjectURL(settings.nextFile)
         player.stop()
         await player.load(url)
-        waveform?.loadBlob(settings.nextFile)
         player.start()
         set(mergeSettings({ file: settings.nextFile, nextFile: undefined, duration: player.buffer.duration }))
       }
 
       filter.set({ frequency: settings.filterCutoff })
-      player.set({ playbackRate: settings.speed })
+      player.set({ playbackRate: settings.speed, loop: settings.loop })
     }
 
     syncPlayerSettings()
@@ -166,8 +173,20 @@ const App: FunctionComponent = () => {
           <Typography variant="h5" component="div">scrunked</Typography>
           <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>a toolkit for ruining your favourite music</Typography>
           <CardContent>
+            <Grid container mt={2} spacing={2}>
+            <Grid item xs={11}>
+              <Input type="file" sx={{ width: "100%", pt: 1, pb: 1 }} onChange={handleFileChange} accept={"audio/wav, audio/ogg, audio/mp3, audio/flac, audio/acc, audio/mpeg"} />
+            </Grid>
+            <Grid item xs={1}>
+            <Tooltip title={settings.loop ? "Loop" : "Play Once"}>
+              <Checkbox checked={settings.loop} icon={<ArrowRightAltIcon />} checkedIcon={<LoopIcon />} onChange={(evt) => set({...settings, loop: evt.currentTarget.checked})} />
+              </Tooltip>
+              </Grid>
+            </Grid>
 
-            <Input type="file" sx={{ width: "100%", pt: 1, pb: 1 }} onChange={handleFileChange} accept={"audio/wav, audio/ogg, audio/mp3, audio/flac, audio/acc, audio/mpeg"} />
+
+
+
             {settings.file || settings.nextFile ? <>
               <Grid container spacing={2}>
                   <Grid item xs={2}>
@@ -197,11 +216,9 @@ const App: FunctionComponent = () => {
                   step={0.01}
                   marks={[
                     { value: 0.1 },
-                    { value: 0.5 },
                     {value: 0.7334, label: "daycore"},
-                    { value: 1 },
+                    { value: 1, label: "1x" },
                     {value: 1.3636, label: "nightcore"},
-                    { value: 1.5 },
                     { value: 2 },
                   ]}
                   onChange={(e, value) => {
@@ -211,7 +228,7 @@ const App: FunctionComponent = () => {
                 />
               </Grid>
               <Grid item xs={1}>
-                {settings.speed}x
+                {Math.round(settings.speed*100)}%
               </Grid>
             </Grid>
             <Grid container spacing={2}>
