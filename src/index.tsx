@@ -22,13 +22,16 @@ import Link from '@mui/material/Link';
 import Checkbox from '@mui/material/Checkbox';
 import Tooltip from '@mui/material/Tooltip';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import Changelog from "./changelog"
 
 import { useThrottle } from "@uidotdev/usehooks";
 import { getScaleValue, getValueFromScale, humanFormat } from './lib';
 import WaveSurfer from 'wavesurfer.js';
 import LoopIcon from '@mui/icons-material/Loop';
 import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
-
+import {ChromeIcon} from "./icons"
+import { SvgIcon } from '@mui/material';
+import { QueryClientProvider, QueryClient } from 'react-query';
 
 type Settings = {
   filterCutoff: number,
@@ -40,16 +43,14 @@ type Settings = {
   state: "ready" | "init"
 }
 
-
-const filterMax = 22_000
+const FILTER_MAX = 22_000
 
 const mergeSettings = (next: Partial<Settings>) => (state: Settings) => ({
   ...state,
   ...next
 })
 
-
-const marks = [
+const filterCutoffMarks = [
   { value: getScaleValue(10), label: "10" },
   { value: getScaleValue(250), label: "250" },
   { value: getScaleValue(1_000), label: "1k" },
@@ -74,7 +75,7 @@ const App: FunctionComponent = () => {
   );
 
   const [settings, set] = useState<Settings>({
-    filterCutoff: filterMax,
+    filterCutoff: FILTER_MAX,
     speed: 1,
     loop: true,
     file: undefined,
@@ -88,6 +89,8 @@ const App: FunctionComponent = () => {
   const [player] = useState(new Tone.Player())
   const [filter] = useState(new Tone.Filter(settings.filterCutoff, "lowpass", -48))
   const [comp] = useState(new Tone.Compressor(-96, 3))
+
+  const [queryClient] = useState( new QueryClient({defaultOptions: {queries: {refetchOnWindowFocus: false}}}) )
 
   const waveformRef = useRef<HTMLDivElement | null>(null)
   const [waveform, setWaveform] = useState<WaveSurfer | undefined>()
@@ -120,8 +123,8 @@ const App: FunctionComponent = () => {
     async function syncPlayerSettings() {
       if (settings.state === "init") {
         player.chain(
-          comp,
           filter,
+          comp,
           Tone.Destination
         )
 
@@ -159,6 +162,7 @@ const App: FunctionComponent = () => {
   }
 
   return (<>
+    <QueryClientProvider client={queryClient}>
     <ThemeProvider theme={theme}>
     <CssBaseline />
       <Box
@@ -236,10 +240,10 @@ const App: FunctionComponent = () => {
               <Grid item xs={9}>
                 <Slider
                   value={getScaleValue(settings.filterCutoff)}
-                  max={marks[marks.length - 1].value}
+                  max={filterCutoffMarks[filterCutoffMarks.length - 1].value}
                   min={1}
                   step={0.1}
-                  marks={marks}
+                  marks={filterCutoffMarks}
                   onChange={(e, value) => {
                     if (Array.isArray(value)) throw new Error("single value required")
                     set(mergeSettings({ filterCutoff: getValueFromScale(value) }))
@@ -254,9 +258,12 @@ const App: FunctionComponent = () => {
         </Card>
         <Typography sx={{ fontSize: 14, mt: 1 }} color="text.secondary">Inspired by <Link href="https://github.com/dumbmatter/screw">Screw</Link> 🔩 Built with love by <Link href="https://github.com/rwnx">Rowan</Link>✨</Typography>
 
+        <Typography sx={{ fontSize: 14, mt: 1, display: "flex", gap: 0.5 }}color="text.secondary">Runs best in <SvgIcon fontSize='small'>{ChromeIcon}</SvgIcon> Chrome</Typography>
+        <Changelog />
         <Typography sx={{ mt: 1 }} color="text.secondary"> <Button href={"https://github.com/rwnx/scrunked"}><GitHubIcon sx={{ mr: 0.5 }} />view on github</Button> </Typography>
       </Box>
     </ThemeProvider>
+    </QueryClientProvider>
   </>
   );
 }
