@@ -19,6 +19,7 @@ import createTheme from '@mui/material/styles/createTheme';
 import Typography from '@mui/material/Typography';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import Link from '@mui/material/Link';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { useThrottle } from "@uidotdev/usehooks";
 import { getScaleValue, getValueFromScale, humanFormat } from './lib';
@@ -55,6 +56,18 @@ const marks = [
 ]
 
 const App: FunctionComponent = () => {
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode: prefersDarkMode ? 'dark' : 'light',
+        },
+      }),
+    [prefersDarkMode],
+  );
+
   const [settings, set] = useState<Settings>({
     filterCutoff: filterMax,
     speed: 1,
@@ -138,10 +151,9 @@ const App: FunctionComponent = () => {
     }
   }
 
-  const theme = createTheme({})
   return (<>
-    <CssBaseline />
     <ThemeProvider theme={theme}>
+    <CssBaseline />
       <Box
         display="flex"
         justifyContent="center"
@@ -149,6 +161,7 @@ const App: FunctionComponent = () => {
         flexDirection="column"
         minHeight="100vh"
       >
+
         <Card sx={{ width: 500, padding: 3 }}>
           <Typography variant="h5" component="div">scrunked</Typography>
           <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>a toolkit for ruining your favourite music</Typography>
