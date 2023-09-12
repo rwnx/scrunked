@@ -12,7 +12,7 @@ export default defineConfig({
       targets: [
         {
           src: 'CHANGELOG.md',
-          dest: 'CHANGELOG.md'
+          dest: ''
         }
       ]
     })

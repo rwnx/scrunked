@@ -1,7 +1,7 @@
-import { Box, Card, CardContent, Chip, CircularProgress, Link, List, ListItem, Typography } from "@mui/material";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import { parser } from "keep-a-changelog";
 import { DateTime } from "luxon";
-import { useMemo } from "preact/hooks";
 import { useQuery } from "react-query";
 
 export const useChangelogQuery = () => {

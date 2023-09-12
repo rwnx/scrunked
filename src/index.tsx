@@ -22,7 +22,7 @@ import Link from '@mui/material/Link';
 import Checkbox from '@mui/material/Checkbox';
 import Tooltip from '@mui/material/Tooltip';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import Changelog from "./changelog"
+import Changelog from "./Changelog"
 
 import { useThrottle } from "@uidotdev/usehooks";
 import { getScaleValue, getValueFromScale, humanFormat } from './lib';

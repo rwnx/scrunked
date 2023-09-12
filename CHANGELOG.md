@@ -5,6 +5,11 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ## [Unreleased]
 
+## [v0.1.1] - 2023-09-12
+### Fixed
+
+- Fixed a bug where the changelog module would not be correctly built on case-sensitive filesystems
+
 ## [v0.1.0] - 2023-09-12
 
 Initial Release! 🎉
