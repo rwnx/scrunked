@@ -586,15 +586,77 @@ const App: FunctionComponent = () => {
             <Box
               display="flex"
               alignItems="baseline"
-              justifyContent="space-between"
               sx={{ mt: 2, mb: 1 }}
             >
               <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
                 Effects
               </Typography>
-              <Typography variant="caption" color="text.disabled">
-                Signal flow →
-              </Typography>
+            </Box>
+
+            {/* Processing chain visualization */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                flexWrap: 'wrap',
+                mb: 1.5,
+                py: 1,
+                px: 1.5,
+                bgcolor: 'action.hover',
+                borderRadius: 1.5,
+              }}
+            >
+              {/* File → Speed → Distortion → Reverb → Delay → Chorus → BitCrusher → Filter → Comp → Output */}
+              {[
+                { key: 'file', label: 'File', color: 'primary.main', isEffect: false, enabled: true },
+                { key: 'speed', label: 'Speed', color: EFFECT_COLORS.speed, isEffect: true, enabled: settings.speedEnabled },
+                { key: 'distortion', label: 'Distort', color: EFFECT_COLORS.distortion, isEffect: true, enabled: settings.distortionEnabled },
+                { key: 'reverb', label: 'Reverb', color: EFFECT_COLORS.reverb, isEffect: true, enabled: settings.reverbEnabled },
+                { key: 'delay', label: 'Delay', color: EFFECT_COLORS.delay, isEffect: true, enabled: settings.delayEnabled },
+                { key: 'chorus', label: 'Chorus', color: EFFECT_COLORS.chorus, isEffect: true, enabled: settings.chorusEnabled },
+                { key: 'bitcrusher', label: 'Crush', color: EFFECT_COLORS.bitcrusher, isEffect: true, enabled: settings.bitcrusherEnabled },
+                { key: 'filter', label: 'Filter', color: EFFECT_COLORS.filter, isEffect: true, enabled: settings.filterEnabled },
+                { key: 'comp', label: 'Comp', color: '#90a4ae', isEffect: false, enabled: true },
+                { key: 'output', label: 'Output', color: 'secondary.main', isEffect: false, enabled: true },
+              ].map((node, index, arr) => (
+                <Box key={node.key} display="flex" alignItems="center" gap={0.5}>
+                  <Box
+                    sx={{
+                      px: 1,
+                      py: 0.4,
+                      borderRadius: 1.25,
+                      border: 1.5,
+                      borderColor: node.enabled ? node.color : 'divider',
+                      bgcolor: node.enabled ? `${node.color}18` : 'transparent',
+                      opacity: node.enabled ? 1 : 0.4,
+                      transition: 'all 0.25s',
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: node.enabled ? node.color : 'text.disabled',
+                        whiteSpace: 'nowrap',
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {node.label}
+                    </Typography>
+                  </Box>
+                  {index < arr.length - 1 && (
+                    <ChevronRightIcon
+                      sx={{
+                        fontSize: 16,
+                        color: 'text.disabled',
+                        opacity: 0.5,
+                      }}
+                    />
+                  )}
+                </Box>
+              ))}
             </Box>
 
 

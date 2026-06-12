@@ -5,6 +5,10 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ## [Unreleased]
 
+### Added
+
+- Visual processing chain diagram showing the full signal flow from File through all effects (Speed → Distortion → Reverb → Delay → Chorus → BitCrusher → Filter → Compressor) to Output — each node lights up with its effect colour when enabled and fades when disabled, making the signal path readable at a glance
+
 ### Changed
 
 - Removed PitchShift and independent pitch control — Speed slider now changes `playbackRate` directly (natural tempo + pitch change like a tape player), replacing the previous combined Speed/Pitch card with linked sliders
