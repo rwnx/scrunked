@@ -11,10 +11,9 @@
 ## Intentional Patterns
 
 ### Audio Chain
-- Full processing order: `Player → [PitchShift] → [Distortion] → [Reverb] → [Delay] → [Chorus] → [BitCrusher] → [Filter] → Compressor → Tone.Destination`
+- Full processing order: `Player → [Distortion] → [Reverb] → [Delay] → [Chorus] → [BitCrusher] → [Filter] → Compressor → Tone.Destination`
 - Square brackets `[]` denote conditionally-connected effects (togglable on/off)
 - Compressor is always present and always at the end before Destination
-- PitchShift sits first in the chain immediately after the Player so pitch is resolved before any time-based or harmonic effects
 
 ### Effects Cards
 - Every effect is a togglable MUI Card with a checkbox, vertical slider, and value display — visual consistency communicates equal footing
@@ -23,11 +22,9 @@
 - Disabled cards render at reduced opacity (0.55) with the slider disabled — faded but readable, preserving the spatial layout so the chain position stays visible
 - The row uses `flexWrap: 'wrap'` rather than scrollbars — effect cards reflow onto new lines when the container is too narrow, making the full chain always visible without hidden overflow
 
-### Speed & Pitch
-- Speed and Pitch are a single combined effect card containing two sliders and a link toggle between them.
-- **Speed** controls `player.playbackRate` (0.1x–2x) with PitchShift compensation so tempo changes without affecting pitch. Enabled by default at 1x.
-- **Pitch** is an independent semitone shift (-12 to +12) via `Tone.PitchShift`, added on top of the speed compensation.
-- A link icon button sits between the two sliders. When linked (default), moving either slider visually tracks the other using a linear position mapping so they move at the same rate. Clicking the icon unlinks them, allowing independent adjustment.
+### Speed
+- Speed is a single togglable effect card with a vertical slider.
+- Controls `player.playbackRate` (0.1x–2x), changing both tempo and pitch naturally (like a tape player).
 
 ### Filter
 - Filter is a togglable lowpass effect in the chain — disabling it bypasses the filter entirely, useful for an uncoloured signal

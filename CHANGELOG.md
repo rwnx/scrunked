@@ -5,6 +5,10 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ## [Unreleased]
 
+### Changed
+
+- Removed PitchShift and independent pitch control — Speed slider now changes `playbackRate` directly (natural tempo + pitch change like a tape player), replacing the previous combined Speed/Pitch card with linked sliders
+
 ### Added
 
 - Waveform scrubbing — click anywhere on the waveform to seek to that position in the track
