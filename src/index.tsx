@@ -37,7 +37,6 @@ import IconButton from '@mui/material/IconButton';
 import {ChromeIcon} from "./icons"
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { SvgIcon } from '@mui/material';
-import { QueryClientProvider, QueryClient } from 'react-query';
 import { z } from 'zod';
 
 type Settings = {
@@ -301,8 +300,6 @@ const App: FunctionComponent = () => {
   const [chorus] = useState(() => new Tone.Chorus(1.5, 3.5, 0.7))
   const [bitcrusher] = useState(() => new Tone.BitCrusher(8))
 
-  const [queryClient] = useState( new QueryClient({defaultOptions: {queries: {refetchOnWindowFocus: false}}}) )
-
   const waveformRef = useRef<HTMLDivElement | null>(null)
   const [waveform, setWaveform] = useState<WaveSurfer | undefined>()
   const [seekPosition, setSeekPosition] = useState(0)
@@ -521,7 +518,6 @@ const App: FunctionComponent = () => {
   }
 
   return (<>
-    <QueryClientProvider client={queryClient}>
     <ThemeProvider theme={theme}>
     <CssBaseline />
       <Box
@@ -833,7 +829,6 @@ const App: FunctionComponent = () => {
         <Typography sx={{ mt: 1 }} color="text.secondary"> <Button href={"https://github.com/rwnx/scrunked"}><GitHubIcon sx={{ mr: 0.5 }} />view on github</Button> </Typography>
       </Box>
     </ThemeProvider>
-    </QueryClientProvider>
   </>
   );
 }

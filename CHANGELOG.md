@@ -8,6 +8,7 @@ These are user-facing changes. To see the changes in the code between versions y
 ### Changed
 
 - Removed PitchShift and independent pitch control — Speed slider now changes `playbackRate` directly (natural tempo + pitch change like a tape player), replacing the previous combined Speed/Pitch card with linked sliders
+- Changelog display now uses build-time inlining (`?raw` import) instead of runtime fetch — removed `react-query` and `vite-plugin-static-copy` dependencies
 
 ### Added
 

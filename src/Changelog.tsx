@@ -2,43 +2,32 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { parser } from "keep-a-changelog";
 import { DateTime } from "luxon";
-import { useQuery } from "react-query";
+import changelogRaw from "../CHANGELOG.md?raw";
 
-export const useChangelogQuery = () => {
-  return useQuery(["changelog"], async () => {
-    const data = await fetch("CHANGELOG.md").then(response => response.text())
+/** Parsed at build-time from the inlined CHANGELOG.md content. */
+const parsed = parser(changelogRaw)
 
-    const parsed = parser(data)
+const latestRelease = parsed.releases[1]
+if (!latestRelease) throw new Error("changelog missing release at index 1")
+if (!latestRelease.version || !latestRelease.date) throw new Error("changelog missing required fields")
 
-    const latestReleased = parsed.releases[1]
-    if(!latestReleased.version || !latestReleased.date) throw new Error("changelog missing required fields")
-
-    return parsed
-  }, {retry: false})
-}
+const version = latestRelease.version.raw
+const date = latestRelease.date
+const description = latestRelease.description
 
 /**
- * Fetches the changelog dynamically and parses the last release
- * this relies on CHANGELOG.md being available at runtime. see vite.config.ts for vite-plugin-static-copy config
+ * Displays the latest release info from CHANGELOG.md, inlined at build time
+ * via Vite's `?raw` import — no runtime fetch needed.
  */
 const Changelog: React.FunctionComponent = () => {
-  const changelogQuery = useChangelogQuery()
-
-  if (changelogQuery.isLoading) return <Typography sx={{ fontSize: 14, mt: 1 }} color="text.secondary">Loading...</Typography>
-  if (changelogQuery.isError || !changelogQuery.data) return <Typography sx={{ fontSize: 14, mt: 1 }} color="warning.main">Unable to load <Link color="warning.main" href="https://github.com/rwnx/scrunked/CHANGELOG.md">CHANGELOG.md</Link></Typography>
-
-  const {data} = changelogQuery
-  const latestReleased = data.releases[1]
-  if(!latestReleased.version || !latestReleased.date) throw new Error("changelog missing required fields")
-
   return <Box sx={{ mt: 2}} >
     <Typography sx={{fontSize: 14,textDecoration: "underline"}} color="text.secondary">Latest Release</Typography>
       <Box display="flex" gap={1} alignItems="center">
-    <Typography sx={{fontSize: 14,fontWeight: "bold"}}>{latestReleased.version.raw}</Typography>
-    <Typography sx={{ fontSize: 14}} color="text.secondary">{DateTime.fromJSDate(latestReleased.date).toRelativeCalendar({})} </Typography>
+    <Typography sx={{fontSize: 14,fontWeight: "bold"}}>{version}</Typography>
+    <Typography sx={{ fontSize: 14}} color="text.secondary">{DateTime.fromJSDate(date).toRelativeCalendar({})} </Typography>
     </Box>
     <Typography sx={{ fontSize: 14, mt: 1 }} color="text.secondary">
-      {latestReleased.description}
+      {description}
     </Typography>
     </Box>
 }
