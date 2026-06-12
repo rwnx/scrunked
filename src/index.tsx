@@ -30,6 +30,9 @@ import { getScaleValue, getValueFromScale, humanFormat, audioBufferToWavBlob, do
 import WaveSurfer from 'wavesurfer.js';
 import LoopIcon from '@mui/icons-material/Loop';
 import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
+import LinkIcon from '@mui/icons-material/Link';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
+import IconButton from '@mui/material/IconButton';
 import {ChromeIcon} from "./icons"
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { SvgIcon } from '@mui/material';
@@ -37,11 +40,16 @@ import { QueryClientProvider, QueryClient } from 'react-query';
 import { z } from 'zod';
 
 type Settings = {
+  speedEnabled: boolean,
+  speed: number,
+  pitchEnabled: boolean,
+  pitch: number,
+  speedPitchLinked: boolean,
+  filterEnabled: boolean,
   filterCutoff: number,
   file: File | undefined,
   duration: number | undefined
   nextFile: File | undefined,
-  speed: number,
   loop: boolean,
   state: "ready" | "init",
   // Effects
@@ -139,8 +147,13 @@ const App: FunctionComponent = () => {
   );
 
   const [settings, set] = useState<Settings>({
-    filterCutoff: FILTER_MAX,
+    speedEnabled: true,
     speed: 1,
+    pitchEnabled: true,
+    pitch: 0,
+    speedPitchLinked: true,
+    filterEnabled: true,
+    filterCutoff: FILTER_MAX,
     loop: true,
     file: undefined,
     duration: undefined,
@@ -175,6 +188,7 @@ const App: FunctionComponent = () => {
   const [delay] = useState(() => new Tone.PingPongDelay(0.25, 0.3))
   const [chorus] = useState(() => new Tone.Chorus(1.5, 3.5, 0.7))
   const [bitcrusher] = useState(() => new Tone.BitCrusher(8))
+  const [pitchShift] = useState(() => new Tone.PitchShift(0))
 
   const [queryClient] = useState( new QueryClient({defaultOptions: {queries: {refetchOnWindowFocus: false}}}) )
 
@@ -246,6 +260,7 @@ const App: FunctionComponent = () => {
 
     // Disconnect everything downstream first
     try { player.disconnect() } catch {}
+    try { pitchShift.disconnect() } catch {}
     try { distortion.disconnect() } catch {}
     try { reverb.disconnect() } catch {}
     try { delay.disconnect() } catch {}
@@ -255,7 +270,9 @@ const App: FunctionComponent = () => {
     try { comp.disconnect() } catch {}
 
     // Rebuild chain through enabled effects only
+    // Order: Player → PitchShift → Distortion → Reverb → Delay → Chorus → BitCrusher → Filter → Compressor → Destination
     let lastNode: Tone.ToneAudioNode = player
+    if (settings.pitchEnabled) { lastNode.connect(pitchShift); lastNode = pitchShift }
     if (settings.distortionEnabled) { lastNode.connect(distortion); lastNode = distortion }
     if (settings.reverbEnabled) { lastNode.connect(reverb); lastNode = reverb }
     if (settings.delayEnabled) { lastNode.connect(delay); lastNode = delay }
@@ -265,10 +282,10 @@ const App: FunctionComponent = () => {
       lastNode = chorus
     }
     if (settings.bitcrusherEnabled) { lastNode.connect(bitcrusher); lastNode = bitcrusher }
-    lastNode.connect(filter)
-    filter.connect(comp)
+    if (settings.filterEnabled) { lastNode.connect(filter); lastNode = filter }
+    lastNode.connect(comp)
     comp.connect(Tone.Destination)
-  }, [settings.distortionEnabled, settings.reverbEnabled, settings.delayEnabled, settings.chorusEnabled, settings.bitcrusherEnabled, player, distortion, reverb, delay, chorus, bitcrusher, filter, comp])
+  }, [settings.pitchEnabled, settings.distortionEnabled, settings.reverbEnabled, settings.delayEnabled, settings.chorusEnabled, settings.bitcrusherEnabled, settings.filterEnabled, player, distortion, reverb, delay, chorus, bitcrusher, filter, comp, pitchShift])
 
   useEffect(() => {
     async function syncPlayerSettings() {
@@ -305,9 +322,17 @@ const App: FunctionComponent = () => {
       delay.set({ delayTime: settings.delayTime, feedback: settings.delayFeedback, wet: settings.delayWet })
       chorus.set({ frequency: settings.chorusRate, depth: settings.chorusDepth })
       bitcrusher.set({ bits: settings.bitcrusherBits })
+      if (settings.speedEnabled) {
+        // Compensate for playbackRate's natural pitch shift so Speed changes tempo only
+        const pitchCompensation = -Math.round(12 * Math.log2(settings.speed))
+        pitchShift.set({ pitch: pitchCompensation + settings.pitch })
+        player.set({ playbackRate: settings.speed, loop: settings.loop })
+      } else {
+        pitchShift.set({ pitch: 0 })
+        player.set({ playbackRate: 1, loop: settings.loop })
+      }
 
       filter.set({ frequency: settings.filterCutoff })
-      player.set({ playbackRate: settings.speed, loop: settings.loop })
     }
 
     syncPlayerSettings()
@@ -402,7 +427,7 @@ const App: FunctionComponent = () => {
         minHeight="100vh"
       >
 
-        <Card sx={{ width: 500, padding: 3 }}>
+        <Card sx={{ maxWidth: 1400, width: '100%', mx: 2, p: 4 }}>
           <Typography variant="h5" component="div">scrunked</Typography>
           <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>a toolkit for ruining your favourite music</Typography>
           <CardContent>
@@ -454,183 +479,243 @@ const App: FunctionComponent = () => {
 
             </> : null}
 
-            <Grid container mt={2} spacing={2}>
-              <Grid item xs={2}>Speed</Grid>
-              <Grid item xs={9}>
-                <Slider
-                  value={settings.speed}
-                  max={2}
-                  min={0.1}
-                  step={0.01}
-                  marks={[
-                    { value: 0.1 },
-                    {value: 0.7334, label: "daycore"},
-                    { value: 1, label: "1x" },
-                    {value: 1.3636, label: "nightcore"},
-                    { value: 2 },
-                  ]}
-                  onChange={(e, value) => {
-                    if (Array.isArray(value)) throw new Error("single value required")
-                    set(mergeSettings({ speed: value }))
-                  }}
-                />
-              </Grid>
-              <Grid item xs={1}>
-                {Math.round(settings.speed*100)}%
-              </Grid>
-            </Grid>
-            <Grid container spacing={2}>
-              <Grid item xs={2}><span>Filter</span></Grid>
-              <Grid item xs={9}>
-                <Slider
-                  value={getScaleValue(settings.filterCutoff)}
-                  max={filterCutoffMarks[filterCutoffMarks.length - 1].value}
-                  min={1}
-                  step={0.1}
-                  marks={filterCutoffMarks}
-                  onChange={(e, value) => {
-                    if (Array.isArray(value)) throw new Error("single value required")
-                    set(mergeSettings({ filterCutoff: getValueFromScale(value) }))
-                  }}
-                />
-              </Grid>
-              <Grid item xs={1}>
-                {humanFormat(settings.filterCutoff)}hz
-              </Grid>
-            </Grid>
+
 
             {/* Effects Section */}
-            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }} color="text.secondary">Effects <span style={{ fontWeight: 'normal', fontSize: 12 }}>(toggle on/off to save CPU)</span></Typography>
+            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }} color="text.secondary">Effects</Typography>
 
-            {/* Distortion */}
-            <Grid container spacing={1} alignItems="center">
-              <Grid item xs={3}>
-                <Checkbox size="small" checked={settings.distortionEnabled} onChange={(e) => set(mergeSettings({ distortionEnabled: e.currentTarget.checked }))} sx={{ py: 0 }} />
-                <span style={{ fontSize: 13 }}>Distort</span>
-              </Grid>
-              <Grid item xs={7}>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              {/* Speed / Pitch — combined effect with linked sliders */}
+              <Card sx={{ minWidth: 240, flex: 1.5, display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2, px: 1, opacity: settings.speedEnabled ? 1 : 0.55 }}>
+                <Box display="flex" alignItems="center" gap={0.5} mb={1}>
+                  <Checkbox checked={settings.speedEnabled} onChange={(e) => {
+                    const checked = e.currentTarget.checked
+                    set(mergeSettings({ speedEnabled: checked, pitchEnabled: checked }))
+                  }} sx={{ py: 0, px: 0 }} />
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Speed / Pitch</Typography>
+                </Box>
+                <Box display="flex" alignItems="center" justifyContent="center" width="100%">
+                  {/* Speed slider */}
+                  <Box display="flex" flexDirection="column" alignItems="center" flex={1}>
+                    <Typography variant="caption" sx={{ fontSize: 11, lineHeight: 1.2, mb: 0.5 }}>Speed</Typography>
+                    <Slider
+                      orientation="vertical"
+                      value={settings.speed}
+                      max={2}
+                      min={0.1}
+                      step={0.01}
+                      marks={[
+                        { value: 0.5, label: "0.5" },
+                        {value: 0.7334, label: "daycore"},
+                        { value: 1, label: "1x" },
+                        {value: 1.3636, label: "nightcore"},
+                        { value: 2, label: "2x" },
+                      ]}
+                      sx={{ height: 140, mb: 0.5 }}
+                      disabled={!settings.speedEnabled}
+                      onChange={(e, value) => {
+                        if (Array.isArray(value)) throw new Error("single value required")
+                        let clamped = value as number
+                        if (settings.speedPitchLinked) {
+                          clamped = Math.max(0.5, clamped)
+                        }
+                        const next: Partial<Settings> = { speed: clamped }
+                        if (settings.speedPitchLinked) {
+                          // Linearly map speed position to pitch position for visual tracking only
+                          next.pitch = Math.round((clamped - 0.5) / 1.5 * 24 - 12)
+                        }
+                        set(mergeSettings(next))
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ fontSize: 11 }}>{Math.round(settings.speed * 100)}%</Typography>
+                  </Box>
+
+                  {/* Link toggle */}
+                  <IconButton
+                    size="small"
+                    onClick={() => set(mergeSettings({ speedPitchLinked: !settings.speedPitchLinked }))}
+                    sx={{ mx: 0.5, mt: -3 }}
+                    disabled={!settings.speedEnabled}
+                    title={settings.speedPitchLinked ? "Unlink sliders" : "Link sliders"}
+                  >
+                    {settings.speedPitchLinked ? <LinkIcon fontSize="small" /> : <LinkOffIcon fontSize="small" />}
+                  </IconButton>
+
+                  {/* Pitch slider */}
+                  <Box display="flex" flexDirection="column" alignItems="center" flex={1}>
+                    <Typography variant="caption" sx={{ fontSize: 11, lineHeight: 1.2, mb: 0.5 }}>Pitch</Typography>
+                    <Slider
+                      orientation="vertical"
+                      value={settings.pitch}
+                      max={12}
+                      min={-12}
+                      step={1}
+                      marks={[
+                        { value: -12, label: "-12" },
+                        { value: 0, label: "0" },
+                        { value: 12, label: "+12" },
+                      ]}
+                      sx={{ height: 140, mb: 0.5 }}
+                      disabled={!settings.speedEnabled}
+                      onChange={(e, value) => {
+                        if (Array.isArray(value)) throw new Error("single value required")
+                        const next: Partial<Settings> = { pitch: value }
+                        if (settings.speedPitchLinked) {
+                          // Linearly map pitch position to speed position for visual tracking only
+                          next.speed = ((value as number) + 12) / 24 * 1.5 + 0.5
+                        }
+                        set(mergeSettings(next))
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ fontSize: 11 }}>{settings.pitch > 0 ? `+${settings.pitch}` : settings.pitch}st</Typography>
+                  </Box>
+                </Box>
+              </Card>
+
+              {/* Distortion */}
+              <Card sx={{ minWidth: 140, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2, px: 1, opacity: settings.distortionEnabled ? 1 : 0.55 }}>
+                <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
+                  <Checkbox checked={settings.distortionEnabled} onChange={(e) => set(mergeSettings({ distortionEnabled: e.currentTarget.checked }))} sx={{ py: 0, px: 0 }} />
+                  <Typography variant="body2" sx={{ fontSize: 13, lineHeight: 1.2 }}>Distort</Typography>
+                </Box>
                 <Slider
+                  orientation="vertical"
                   value={settings.distortionDrive}
                   max={1}
                   min={0}
                   step={0.01}
-                  size="small"
+                  sx={{ height: 140, mb: 0.5 }}
                   disabled={!settings.distortionEnabled}
                   onChange={(e, value) => {
                     if (Array.isArray(value)) throw new Error("single value required")
                     set(mergeSettings({ distortionDrive: value }))
                   }}
                 />
-              </Grid>
-              <Grid item xs={2}>
-                <span style={{ fontSize: 12 }}>{settings.distortionDrive.toFixed(2)}</span>
-              </Grid>
-            </Grid>
+                <Typography variant="caption" sx={{ fontSize: 12 }}>{settings.distortionDrive.toFixed(2)}</Typography>
+              </Card>
 
-            {/* Reverb */}
-            <Grid container spacing={1} alignItems="center">
-              <Grid item xs={3}>
-                <Checkbox size="small" checked={settings.reverbEnabled} onChange={(e) => set(mergeSettings({ reverbEnabled: e.currentTarget.checked }))} sx={{ py: 0 }} />
-                <span style={{ fontSize: 13 }}>Reverb</span>
-              </Grid>
-              <Grid item xs={7}>
+              {/* Reverb */}
+              <Card sx={{ minWidth: 140, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2, px: 1, opacity: settings.reverbEnabled ? 1 : 0.55 }}>
+                <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
+                  <Checkbox checked={settings.reverbEnabled} onChange={(e) => set(mergeSettings({ reverbEnabled: e.currentTarget.checked }))} sx={{ py: 0, px: 0 }} />
+                  <Typography variant="body2" sx={{ fontSize: 13, lineHeight: 1.2 }}>Reverb</Typography>
+                </Box>
                 <Slider
+                  orientation="vertical"
                   value={settings.reverbDecay}
                   max={10}
                   min={0.1}
                   step={0.1}
-                  size="small"
+                  sx={{ height: 140, mb: 0.5 }}
                   disabled={!settings.reverbEnabled}
                   onChange={(e, value) => {
                     if (Array.isArray(value)) throw new Error("single value required")
                     set(mergeSettings({ reverbDecay: value }))
                   }}
                 />
-              </Grid>
-              <Grid item xs={2}>
-                <span style={{ fontSize: 12 }}>{settings.reverbDecay.toFixed(1)}s</span>
-              </Grid>
-            </Grid>
+                <Typography variant="caption" sx={{ fontSize: 12 }}>{settings.reverbDecay.toFixed(1)}s</Typography>
+              </Card>
 
-            {/* PingPong Delay */}
-            <Grid container spacing={1} alignItems="center">
-              <Grid item xs={3}>
-                <Checkbox size="small" checked={settings.delayEnabled} onChange={(e) => set(mergeSettings({ delayEnabled: e.currentTarget.checked }))} sx={{ py: 0 }} />
-                <span style={{ fontSize: 13 }}>Delay</span>
-              </Grid>
-              <Grid item xs={7}>
+              {/* PingPong Delay */}
+              <Card sx={{ minWidth: 140, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2, px: 1, opacity: settings.delayEnabled ? 1 : 0.55 }}>
+                <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
+                  <Checkbox checked={settings.delayEnabled} onChange={(e) => set(mergeSettings({ delayEnabled: e.currentTarget.checked }))} sx={{ py: 0, px: 0 }} />
+                  <Typography variant="body2" sx={{ fontSize: 13, lineHeight: 1.2 }}>Delay</Typography>
+                </Box>
                 <Slider
+                  orientation="vertical"
                   value={settings.delayTime}
                   max={1}
                   min={0.01}
                   step={0.01}
-                  size="small"
+                  sx={{ height: 140, mb: 0.5 }}
                   disabled={!settings.delayEnabled}
                   onChange={(e, value) => {
                     if (Array.isArray(value)) throw new Error("single value required")
                     set(mergeSettings({ delayTime: value }))
                   }}
                 />
-              </Grid>
-              <Grid item xs={2}>
-                <span style={{ fontSize: 12 }}>{settings.delayTime.toFixed(2)}s</span>
-              </Grid>
-            </Grid>
+                <Typography variant="caption" sx={{ fontSize: 12 }}>{settings.delayTime.toFixed(2)}s</Typography>
+              </Card>
 
-            {/* Chorus */}
-            <Grid container spacing={1} alignItems="center">
-              <Grid item xs={3}>
-                <Checkbox size="small" checked={settings.chorusEnabled} onChange={(e) => set(mergeSettings({ chorusEnabled: e.currentTarget.checked }))} sx={{ py: 0 }} />
-                <span style={{ fontSize: 13 }}>Chorus</span>
-              </Grid>
-              <Grid item xs={7}>
+              {/* Chorus */}
+              <Card sx={{ minWidth: 140, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2, px: 1, opacity: settings.chorusEnabled ? 1 : 0.55 }}>
+                <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
+                  <Checkbox checked={settings.chorusEnabled} onChange={(e) => set(mergeSettings({ chorusEnabled: e.currentTarget.checked }))} sx={{ py: 0, px: 0 }} />
+                  <Typography variant="body2" sx={{ fontSize: 13, lineHeight: 1.2 }}>Chorus</Typography>
+                </Box>
                 <Slider
+                  orientation="vertical"
                   value={settings.chorusRate}
                   max={10}
                   min={0.1}
                   step={0.1}
-                  size="small"
+                  sx={{ height: 140, mb: 0.5 }}
                   disabled={!settings.chorusEnabled}
                   onChange={(e, value) => {
                     if (Array.isArray(value)) throw new Error("single value required")
                     set(mergeSettings({ chorusRate: value }))
                   }}
                 />
-              </Grid>
-              <Grid item xs={2}>
-                <span style={{ fontSize: 12 }}>{settings.chorusRate.toFixed(1)}hz</span>
-              </Grid>
-            </Grid>
+                <Typography variant="caption" sx={{ fontSize: 12 }}>{settings.chorusRate.toFixed(1)}hz</Typography>
+              </Card>
 
-            {/* BitCrusher */}
-            <Grid container spacing={1} alignItems="center">
-              <Grid item xs={3}>
-                <Checkbox size="small" checked={settings.bitcrusherEnabled} onChange={(e) => set(mergeSettings({ bitcrusherEnabled: e.currentTarget.checked }))} sx={{ py: 0 }} />
-                <span style={{ fontSize: 13 }}>Crush</span>
-              </Grid>
-              <Grid item xs={7}>
+              {/* BitCrusher */}
+              <Card sx={{ minWidth: 140, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2, px: 1, opacity: settings.bitcrusherEnabled ? 1 : 0.55 }}>
+                <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
+                  <Checkbox checked={settings.bitcrusherEnabled} onChange={(e) => set(mergeSettings({ bitcrusherEnabled: e.currentTarget.checked }))} sx={{ py: 0, px: 0 }} />
+                  <Typography variant="body2" sx={{ fontSize: 13, lineHeight: 1.2 }}>Crush</Typography>
+                </Box>
                 <Slider
+                  orientation="vertical"
                   value={settings.bitcrusherBits}
                   max={16}
                   min={1}
                   step={1}
-                  size="small"
                   marks={[
                     { value: 1, label: "1" },
                     { value: 8, label: "8" },
                     { value: 16, label: "16" },
                   ]}
+                  sx={{ height: 140, mb: 0.5 }}
                   disabled={!settings.bitcrusherEnabled}
                   onChange={(e, value) => {
                     if (Array.isArray(value)) throw new Error("single value required")
                     set(mergeSettings({ bitcrusherBits: value }))
                   }}
                 />
-              </Grid>
-              <Grid item xs={2}>
-                <span style={{ fontSize: 12 }}>{settings.bitcrusherBits}bit</span>
-              </Grid>
-            </Grid>
+                <Typography variant="caption" sx={{ fontSize: 12 }}>{settings.bitcrusherBits}bit</Typography>
+              </Card>
+
+              {/* Filter */}
+              <Card sx={{ minWidth: 140, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2, px: 1, opacity: settings.filterEnabled ? 1 : 0.55 }}>
+                <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
+                  <Checkbox checked={settings.filterEnabled} onChange={(e) => set(mergeSettings({ filterEnabled: e.currentTarget.checked }))} sx={{ py: 0, px: 0 }} />
+                  <Typography variant="body2" sx={{ fontSize: 13, lineHeight: 1.2 }}>Filter</Typography>
+                </Box>
+                <Slider
+                  orientation="vertical"
+                  value={getScaleValue(settings.filterCutoff)}
+                  max={filterCutoffMarks[filterCutoffMarks.length - 1].value}
+                  min={1}
+                  step={0.1}
+                  marks={[
+                    { value: getScaleValue(10), label: "10" },
+                    { value: getScaleValue(100), label: "100" },
+                    { value: getScaleValue(1_000), label: "1k" },
+                    { value: getScaleValue(10_000), label: "10k" },
+                    { value: getScaleValue(22_000), label: "22k" },
+                  ]}
+                  sx={{ height: 140, mb: 0.5 }}
+                  disabled={!settings.filterEnabled}
+                  onChange={(e, value) => {
+                    if (Array.isArray(value)) throw new Error("single value required")
+                    set(mergeSettings({ filterCutoff: getValueFromScale(value) }))
+                  }}
+                />
+                <Typography variant="caption" sx={{ fontSize: 12 }}>{humanFormat(settings.filterCutoff)}hz</Typography>
+              </Card>
+            </Box>
 
           </CardContent>
         </Card>

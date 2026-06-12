@@ -10,10 +10,35 @@
 
 ## Intentional Patterns
 
-- Audio chain: `Player → Filter → Compressor → Tone.Destination`
+### Audio Chain
+- Full processing order: `Player → [PitchShift] → [Distortion] → [Reverb] → [Delay] → [Chorus] → [BitCrusher] → [Filter] → Compressor → Tone.Destination`
+- Square brackets `[]` denote conditionally-connected effects (togglable on/off)
+- Compressor is always present and always at the end before Destination
+- PitchShift sits first in the chain immediately after the Player so pitch is resolved before any time-based or harmonic effects
+
+### Effects Cards
+- Every effect is a togglable MUI Card with a checkbox, vertical slider, and value display — visual consistency communicates equal footing
+- Cards are laid out left-to-right in audio processing chain order so signal flow is readable at a glance
+- Vertical sliders are used because they communicate value at a glance without horizontal label collisions; this is a deliberate trade-off (less precise fine-tuning at narrow widths) in favour of compact card layout
+- Disabled cards render at reduced opacity (0.55) with the slider disabled — faded but readable, preserving the spatial layout so the chain position stays visible
+- The row uses `flexWrap: 'wrap'` rather than scrollbars — effect cards reflow onto new lines when the container is too narrow, making the full chain always visible without hidden overflow
+
+### Speed & Pitch
+- Speed and Pitch are a single combined effect card containing two sliders and a link toggle between them.
+- **Speed** controls `player.playbackRate` (0.1x–2x) with PitchShift compensation so tempo changes without affecting pitch. Enabled by default at 1x.
+- **Pitch** is an independent semitone shift (-12 to +12) via `Tone.PitchShift`, added on top of the speed compensation.
+- A link icon button sits between the two sliders. When linked (default), moving either slider visually tracks the other using a linear position mapping so they move at the same rate. Clicking the icon unlinks them, allowing independent adjustment.
+
+### Filter
+- Filter is a togglable lowpass effect in the chain — disabling it bypasses the filter entirely, useful for an uncoloured signal
+- Sits after BitCrusher so it can smooth out aliasing artifacts from bitcrushing
+- Uses a logarithmic frequency scale (1–22,000 Hz via `getScaleValue`/`getValueFromScale`) with simplified marks for the card layout
+
+### General Patterns
 - WaveSurfer.js is visualization only — Tone.js handles all audio playback
-- `useThrottle` (250ms) on settings before syncing to Tone.js to avoid rapid re-configuration
-- `mergeSettings()` helper for partial state updates using functional updater pattern
+- `useThrottle` (250ms) on settings before syncing to Tone.js to avoid rapid re-configuration during slider drags
+- `mergeSettings()` helper for partial state updates using functional updater pattern — prevents stale closures on the settings object
 - Changelog is parsed at runtime from a static copy of `CHANGELOG.md` (not compiled in)
+- The outer container card uses `maxWidth: 1400, width: '100%'` — it scales down on narrow viewports rather than overflowing the screen
 - When adding a feature or fixing a bug, update `CHANGELOG.md` under the `[Unreleased]` section with the appropriate heading (`### Added`, `### Fixed`, etc.)
 
