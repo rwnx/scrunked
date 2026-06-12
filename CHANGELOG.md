@@ -9,6 +9,11 @@ These are user-facing changes. To see the changes in the code between versions y
 
 - Waveform scrubbing — click anywhere on the waveform to seek to that position in the track
 - Waveform progress indicator now stays in sync with Tone.js playback position
+- Toggleable audio effects: Distortion, Reverb, Delay, Chorus, BitCrusher — each can be enabled/disabled independently with zero CPU overhead when turned off
+
+### Fixed
+
+- Corrected compressor parameters to prevent quiet output and clipping
 
 ## [v0.1.1] - 2023-09-12
 ### Fixed
