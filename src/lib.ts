@@ -6,6 +6,72 @@ export const humanFormat = (value: number) => {
   return Math.round(value)
 }
 
+/** Note divisions supported for BPM sync */
+export const NOTE_DIVISIONS = ['1/8', '1/4', '1/2', '1/1'] as const
+export type NoteDivision = (typeof NOTE_DIVISIONS)[number]
+
+/** Convert a note division to seconds at the given BPM. */
+export function noteToSeconds(note: NoteDivision, bpm: number): number {
+  const quarterNote = 60 / bpm
+  switch (note) {
+    case '1/8': return quarterNote / 2
+    case '1/4': return quarterNote
+    case '1/2': return quarterNote * 2
+    case '1/1': return quarterNote * 4
+  }
+}
+
+/**
+ * Detect tempo (BPM) from an AudioBuffer using autocorrelation.
+ * Returns null if detection fails or audio is too short.
+ */
+export function detectBpm(audioBuffer: AudioBuffer): number | null {
+  try {
+    const channelData = audioBuffer.getChannelData(0)
+    const sampleRate = audioBuffer.sampleRate
+
+    // Downsample to ~200 Hz for efficient processing
+    const targetRate = 200
+    const decimation = Math.max(1, Math.round(sampleRate / targetRate))
+    const actualRate = sampleRate / decimation
+
+    const downsampled: number[] = []
+    for (let i = 0; i < channelData.length; i += decimation) {
+      downsampled.push(channelData[i])
+    }
+
+    const len = downsampled.length
+    if (len < actualRate * 2) return null // need at least 2 seconds
+
+    // Autocorrelation over the BPM range 50–200
+    const minLag = Math.round(actualRate / 200) // fastest
+    const maxLag = Math.round(actualRate / 50)  // slowest
+
+    let bestLag = 0
+    let bestCorr = 0
+
+    for (let lag = minLag; lag <= maxLag; lag++) {
+      let corr = 0
+      const n = len - lag
+      for (let i = 0; i < n; i++) {
+        corr += downsampled[i] * downsampled[i + lag]
+      }
+      corr /= n
+
+      if (corr > bestCorr) {
+        bestCorr = corr
+        bestLag = lag
+      }
+    }
+
+    if (bestLag === 0) return null
+    const bpm = Math.round((actualRate / bestLag) * 60)
+    return Math.max(50, Math.min(200, bpm))
+  } catch {
+    return null
+  }
+}
+
 
 export const getScaleValue = (value: number) => Math.pow(Math.abs(value), 1 / SCALE_POWER)
 export const getValueFromScale = (value: number) => Math.pow(value, SCALE_POWER)

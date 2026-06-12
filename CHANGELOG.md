@@ -5,6 +5,13 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ## [Unreleased]
 
+### Added
+
+- Visual processing chain diagram showing the full signal flow from File through all effects (Speed → Distortion → Reverb → Delay → Chorus → BitCrusher → Filter → Compressor) to Output — each node lights up with its effect colour when enabled and fades when disabled, making the signal path readable at a glance
+- BPM auto-detection via autocorrelation when a new audio file is loaded — detected tempo is displayed and can be applied as the active BPM
+- Tempo section with manual BPM override (40–300 bpm range) and one-click Apply of detected BPM
+- Delay sync-to-BPM mode — toggle the Delay card's "Sync" button to switch between manual time and note divisions (1/8, 1/4, 1/2, 1/1), with the actual delay time computed from the active BPM
+
 ### Changed
 
 - Speed control simplified to single EffectCard — removed pitch slider, link toggle, and all dual-slider logic; speed-only with `playbackRate` control (0.1x–2x)

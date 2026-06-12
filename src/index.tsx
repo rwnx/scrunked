@@ -26,7 +26,17 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import Changelog from "./Changelog"
 
 import { useThrottle } from "@uidotdev/usehooks";
-import { getScaleValue, getValueFromScale, humanFormat, audioBufferToWavBlob, downloadBlob } from './lib';
+import {
+  getScaleValue,
+  getValueFromScale,
+  humanFormat,
+  audioBufferToWavBlob,
+  downloadBlob,
+  NoteDivision,
+  NOTE_DIVISIONS,
+  noteToSeconds,
+  detectBpm,
+} from './lib';
 import WaveSurfer from 'wavesurfer.js';
 import LoopIcon from '@mui/icons-material/Loop';
 import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
@@ -60,6 +70,12 @@ type Settings = {
   chorusDepth: number,
   bitcrusherEnabled: boolean,
   bitcrusherBits: number,
+  // BPM / Tempo
+  bpm: number,
+  bpmDetected: number | null,
+  // Delay sync
+  delaySyncEnabled: boolean,
+  delayNoteDivision: NoteDivision,
 }
 
 const FILTER_MAX = 22_000
@@ -267,6 +283,11 @@ const App: FunctionComponent = () => {
     chorusDepth: 0.7,
     bitcrusherEnabled: false,
     bitcrusherBits: 8,
+    // BPM
+    bpm: 120,
+    bpmDetected: null,
+    delaySyncEnabled: false,
+    delayNoteDivision: '1/4',
     ...loadPersistedSettings(),
   })
 
@@ -399,7 +420,16 @@ const App: FunctionComponent = () => {
         playbackOffsetRef.current = 0
         setSeekPosition(0)
         setIsPlaying(true)
-        set(mergeSettings({ file: settings.nextFile, nextFile: undefined, duration: player.buffer.duration }))
+        const duration = player.buffer.duration
+        // Auto-detect BPM from the loaded audio buffer
+        const detectedBpm = detectBpm(player.buffer.get()!)
+        set(mergeSettings({
+          file: settings.nextFile,
+          nextFile: undefined,
+          duration,
+          bpmDetected: detectedBpm,
+          bpm: detectedBpm ?? settings.bpm,
+        }))
       }
 
       // Rebuild chain to reflect any effect toggle changes
@@ -408,7 +438,10 @@ const App: FunctionComponent = () => {
       // Update effect parameters
       distortion.set({ distortion: settings.distortionDrive })
       reverb.set({ decay: settings.reverbDecay })
-      delay.set({ delayTime: settings.delayTime, feedback: settings.delayFeedback, wet: settings.delayWet })
+      const delayTime = settings.delaySyncEnabled
+        ? noteToSeconds(settings.delayNoteDivision, settings.bpm)
+        : settings.delayTime
+      delay.set({ delayTime, feedback: settings.delayFeedback, wet: settings.delayWet })
       chorus.set({ frequency: settings.chorusRate, depth: settings.chorusDepth })
       bitcrusher.set({ bits: settings.bitcrusherBits })
       if (settings.speedEnabled) {
@@ -467,7 +500,10 @@ const App: FunctionComponent = () => {
         const distortion = new Tone.Distortion(settings.distortionDrive)
         const reverb = new Tone.Reverb({ decay: settings.reverbDecay })
         await reverb.ready
-        const delay = new Tone.PingPongDelay(settings.delayTime, settings.delayFeedback)
+        const delayTime = settings.delaySyncEnabled
+          ? noteToSeconds(settings.delayNoteDivision, settings.bpm)
+          : settings.delayTime
+        const delay = new Tone.PingPongDelay(delayTime, settings.delayFeedback)
         delay.set({ wet: settings.delayWet })
         const chorus = new Tone.Chorus(settings.chorusRate, 3.5, settings.chorusDepth)
         const bitcrusher = new Tone.BitCrusher(settings.bitcrusherBits)
@@ -568,11 +604,72 @@ const App: FunctionComponent = () => {
 
 
 
+            {/* BPM / Tempo Section */}
+            <Box
+              display="flex"
+              alignItems="center"
+              sx={{ mt: 2, mb: 1, gap: 1.5 }}
+            >
+              <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                Tempo
+              </Typography>
+              <Box
+                display="flex"
+                alignItems="center"
+                gap={0.5}
+                sx={{
+                  px: 1,
+                  py: 0.3,
+                  borderRadius: 1,
+                  bgcolor: 'action.hover',
+                }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 13 }}>
+                  {settings.bpm}
+                </Typography>
+                <Typography variant="caption" sx={{ fontSize: 11, color: 'text.secondary' }}>
+                  bpm
+                </Typography>
+                {settings.bpmDetected && settings.bpmDetected !== settings.bpm && (
+                  <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', ml: 0.5 }}>
+                    (detected {settings.bpmDetected})
+                  </Typography>
+                )}
+              </Box>
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <Input
+                  type="number"
+                  value={settings.bpm}
+                  onChange={(e: any) => {
+                    const val = parseInt(e.currentTarget.value, 10)
+                    if (!isNaN(val) && val >= 40 && val <= 300) {
+                      set(mergeSettings({ bpm: val }))
+                    }
+                  }}
+                  sx={{ width: 60, '& input': { fontSize: 12, py: 0.5, textAlign: 'center' } }}
+                  inputProps={{ min: 40, max: 300, step: 1 }}
+                />
+                <Button
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: 10, py: 0.2, minWidth: 0, whiteSpace: 'nowrap' }}
+                  onClick={() => {
+                    if (settings.bpmDetected) {
+                      set(mergeSettings({ bpm: settings.bpmDetected }))
+                    }
+                  }}
+                  disabled={!settings.bpmDetected}
+                >
+                  Apply
+                </Button>
+              </Box>
+            </Box>
+
             {/* Effects Section */}
             <Box
               display="flex"
               alignItems="baseline"
-              sx={{ mt: 2, mb: 1 }}
+              sx={{ mt: 1, mb: 1 }}
             >
               <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
                 Effects
@@ -664,20 +761,104 @@ const App: FunctionComponent = () => {
               >
                 <ArrowForwardIcon sx={{ fontSize: 20 }} />
               </Box>
-              {/* Delay */}
-              <EffectCard
-                color={EFFECT_COLORS.delay}
-                label="Delay"
-                tooltip={EFFECT_TOOLTIPS.delay}
-                enabled={settings.delayEnabled}
-                sliderValue={settings.delayTime}
-                sliderMin={0.01}
-                sliderMax={1}
-                sliderStep={0.01}
-                displayValue={`${settings.delayTime.toFixed(2)}s`}
-                onToggle={(checked) => set(mergeSettings({ delayEnabled: checked }))}
-                onChange={(value) => set(mergeSettings({ delayTime: value }))}
-              />
+
+              {/* Delay — with BPM sync */}
+              <Card
+                sx={{
+                  minWidth: 120,
+                  flex: '0 1 auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  py: 1.5,
+                  px: 0.5,
+                  opacity: settings.delayEnabled ? 1 : 0.55,
+                  borderLeft: 4,
+                  borderLeftColor: EFFECT_COLORS.delay,
+                  borderRadius: 1.5,
+                  transition: 'opacity 0.2s, box-shadow 0.2s',
+                  '&:hover': { boxShadow: 2 },
+                }}
+              >
+                <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
+                  <Tooltip title={EFFECT_TOOLTIPS.delay} placement="top">
+                    <Checkbox
+                      checked={settings.delayEnabled}
+                      onChange={(e) => set(mergeSettings({ delayEnabled: e.currentTarget.checked }))}
+                      sx={{ py: 0, px: 0, '& .MuiSvgIcon-root': { fontSize: 18 } }}
+                      size="small"
+                    />
+                  </Tooltip>
+                  <Typography variant="caption" sx={{ fontSize: 11, lineHeight: 1.1, fontWeight: 500 }}>
+                    Delay
+                  </Typography>
+                </Box>
+                {settings.delaySyncEnabled ? (
+                  <>
+                    {/* Note division selector — discrete clicks */}
+                    <Box display="flex" flexDirection="column" alignItems="center" sx={{ height: 120, justifyContent: 'center', mb: 0.25 }}>
+                      {NOTE_DIVISIONS.map((note) => (
+                        <Button
+                          key={note}
+                          size="small"
+                          variant={settings.delayNoteDivision === note ? 'contained' : 'text'}
+                          onClick={() => set(mergeSettings({ delayNoteDivision: note }))}
+                          sx={{
+                            fontSize: 10,
+                            py: 0.1,
+                            minWidth: 40,
+                            lineHeight: 1.2,
+                            color: settings.delayNoteDivision === note ? undefined : EFFECT_COLORS.delay,
+                          }}
+                        >
+                          {note}
+                        </Button>
+                      ))}
+                    </Box>
+                    <Typography variant="caption" sx={{ fontSize: 10 }}>
+                      {noteToSeconds(settings.delayNoteDivision, settings.bpm).toFixed(3)}s
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Slider
+                      orientation="vertical"
+                      value={settings.delayTime}
+                      max={1}
+                      min={0.01}
+                      step={0.01}
+                      sx={{ height: 120, mb: 0.25 }}
+                      disabled={!settings.delayEnabled}
+                      onChange={(_, value) => {
+                        if (Array.isArray(value)) throw new Error('single value required')
+                        set(mergeSettings({ delayTime: value as number }))
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ fontSize: 11 }}>
+                      {settings.delayTime.toFixed(2)}s
+                    </Typography>
+                  </>
+                )}
+                {/* Sync toggle */}
+                <Tooltip title="Sync delay to BPM">
+                  <Button
+                    size="small"
+                    variant={settings.delaySyncEnabled ? 'contained' : 'outlined'}
+                    onClick={() => set(mergeSettings({ delaySyncEnabled: !settings.delaySyncEnabled }))}
+                    sx={{
+                      mt: 0.5,
+                      fontSize: 9,
+                      py: 0.1,
+                      minWidth: 36,
+                      lineHeight: 1.1,
+                      color: settings.delaySyncEnabled ? undefined : EFFECT_COLORS.delay,
+                      borderColor: EFFECT_COLORS.delay,
+                    }}
+                  >
+                    Sync
+                  </Button>
+                </Tooltip>
+              </Card>
               <Box
                 sx={{
                   display: 'flex',
