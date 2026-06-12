@@ -12,6 +12,12 @@ These are user-facing changes. To see the changes in the code between versions y
 - Tempo section with manual BPM override (40–300 bpm range) and one-click Apply of detected BPM
 - Delay sync-to-BPM mode — toggle the Delay card's "Sync" button to switch between manual time and note divisions (1/8, 1/4, 1/2, 1/1), with the actual delay time computed from the active BPM
 
+### Fixed
+
+- BPM detection now decodes audio data directly from the file blob (via `OfflineAudioContext.decodeAudioData`) instead of relying on `player.buffer.get()`, which could silently return null on some browsers
+- Detected BPM is no longer auto-applied to the active BPM — it's shown separately as "(detected X)" via a persistent indicator, and the user clicks "Apply" to use it
+- The detected BPM indicator now always displays when a detection result exists, regardless of whether it matches the active BPM
+
 ### Changed
 
 - Speed control simplified to single EffectCard — removed pitch slider, link toggle, and all dual-slider logic; speed-only with `playbackRate` control (0.1x–2x)

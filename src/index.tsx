@@ -421,14 +421,21 @@ const App: FunctionComponent = () => {
         setSeekPosition(0)
         setIsPlaying(true)
         const duration = player.buffer.duration
-        // Auto-detect BPM from the loaded audio buffer
-        const detectedBpm = detectBpm(player.buffer.get()!)
+        // Auto-detect BPM — decode from the raw file (more reliable than player.buffer.get())
+        let detectedBpm: number | null = null
+        try {
+          const arrayBuffer = await settings.nextFile.arrayBuffer()
+          const audioCtx = new OfflineAudioContext(1, 1, 44100)
+          const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
+          detectedBpm = detectBpm(audioBuffer)
+        } catch (err) {
+          console.warn('BPM detection failed:', err)
+        }
         set(mergeSettings({
           file: settings.nextFile,
           nextFile: undefined,
           duration,
           bpmDetected: detectedBpm,
-          bpm: detectedBpm ?? settings.bpm,
         }))
       }
 
@@ -630,9 +637,9 @@ const App: FunctionComponent = () => {
                 <Typography variant="caption" sx={{ fontSize: 11, color: 'text.secondary' }}>
                   bpm
                 </Typography>
-                {settings.bpmDetected && settings.bpmDetected !== settings.bpm && (
+                {settings.bpmDetected !== null && (
                   <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', ml: 0.5 }}>
-                    (detected {settings.bpmDetected})
+                    {settings.bpmDetected === settings.bpm ? '✓ detected' : `(detected ${settings.bpmDetected})`}
                   </Typography>
                 )}
               </Box>
