@@ -5,6 +5,11 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ## [Unreleased]
 
+### Added
+
+- Waveform scrubbing — click anywhere on the waveform to seek to that position in the track
+- Waveform progress indicator now stays in sync with Tone.js playback position
+
 ## [v0.1.1] - 2023-09-12
 ### Fixed
 

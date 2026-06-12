@@ -94,6 +94,12 @@ const App: FunctionComponent = () => {
 
   const waveformRef = useRef<HTMLDivElement | null>(null)
   const [waveform, setWaveform] = useState<WaveSurfer | undefined>()
+  const [seekPosition, setSeekPosition] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+
+  // Refs to track playback timing for progress calculation
+  const playbackStartTimeRef = useRef(0)
+  const playbackOffsetRef = useRef(0)
 
   useEffect((() => {
     if (!waveformRef.current) return undefined
@@ -106,11 +112,38 @@ const App: FunctionComponent = () => {
       waveColor: theme.palette.primary.main,
       progressColor: theme.palette.text.secondary,
       cursorWidth: 0,
-      interact: false // TODO: enable and fix seeking
+      interact: true
+    })
+
+    // When user clicks on the waveform, seek the Tone.js player to that position
+    next.on('interaction', (newTime: number) => {
+      setSeekPosition(newTime)
+      if (player.state === "started") {
+        player.stop()
+        player.start(0, newTime)
+        playbackStartTimeRef.current = Tone.now()
+        playbackOffsetRef.current = newTime
+      }
     })
 
     setWaveform(next)
   }), [waveformRef.current])
+
+  // Sync WaveSurfer's progress indicator with Tone.js playback position
+  useEffect(() => {
+    if (!waveform || !settings.duration) return
+
+    const interval = setInterval(() => {
+      if (player.state === "started" && settings.duration) {
+        const elapsed = Tone.now() - playbackStartTimeRef.current
+        const position = Math.min(playbackOffsetRef.current + elapsed, settings.duration)
+        const progress = position / settings.duration
+        waveform.seekTo(progress)
+      }
+    }, 50)
+
+    return () => clearInterval(interval)
+  }, [waveform, isPlaying, settings.duration])
 
   const handleFileChange: ChangeEventHandler<HTMLInputElement> = async (onChange) => {
     const file = onChange.currentTarget?.files?.[0]
@@ -141,6 +174,10 @@ const App: FunctionComponent = () => {
         player.stop()
         await player.load(url)
         player.start()
+        playbackStartTimeRef.current = Tone.now()
+        playbackOffsetRef.current = 0
+        setSeekPosition(0)
+        setIsPlaying(true)
         set(mergeSettings({ file: settings.nextFile, nextFile: undefined, duration: player.buffer.duration }))
       }
 
@@ -156,8 +193,18 @@ const App: FunctionComponent = () => {
     if (!player) return
     if (player.state === "started") {
       player.stop()
+      // Save the current position where playback stopped
+      if (settings.duration) {
+        const elapsed = Tone.now() - playbackStartTimeRef.current
+        const position = Math.min(playbackOffsetRef.current + elapsed, settings.duration)
+        setSeekPosition(position)
+      }
+      setIsPlaying(false)
     } else {
-      player.start(0)
+      player.start(0, seekPosition)
+      playbackStartTimeRef.current = Tone.now()
+      playbackOffsetRef.current = seekPosition
+      setIsPlaying(true)
     }
   }
 
