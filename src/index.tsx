@@ -88,7 +88,7 @@ const App: FunctionComponent = () => {
 
   const [player] = useState(new Tone.Player())
   const [filter] = useState(new Tone.Filter(settings.filterCutoff, "lowpass", -48))
-  const [comp] = useState(new Tone.Compressor(-96, 3))
+  const [comp] = useState(new Tone.Compressor(-24, 12))
 
   const [queryClient] = useState( new QueryClient({defaultOptions: {queries: {refetchOnWindowFocus: false}}}) )
 
