@@ -15,4 +15,5 @@
 - `useThrottle` (250ms) on settings before syncing to Tone.js to avoid rapid re-configuration
 - `mergeSettings()` helper for partial state updates using functional updater pattern
 - Changelog is parsed at runtime from a static copy of `CHANGELOG.md` (not compiled in)
+- When adding a feature or fixing a bug, update `CHANGELOG.md` under the `[Unreleased]` section with the appropriate heading (`### Added`, `### Fixed`, etc.)
 

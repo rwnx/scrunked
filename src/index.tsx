@@ -26,11 +26,12 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import Changelog from "./Changelog"
 
 import { useThrottle } from "@uidotdev/usehooks";
-import { getScaleValue, getValueFromScale, humanFormat } from './lib';
+import { getScaleValue, getValueFromScale, humanFormat, audioBufferToWavBlob, downloadBlob } from './lib';
 import WaveSurfer from 'wavesurfer.js';
 import LoopIcon from '@mui/icons-material/Loop';
 import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
 import {ChromeIcon} from "./icons"
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { SvgIcon } from '@mui/material';
 import { QueryClientProvider, QueryClient } from 'react-query';
 
@@ -132,6 +133,7 @@ const App: FunctionComponent = () => {
   const [waveform, setWaveform] = useState<WaveSurfer | undefined>()
   const [seekPosition, setSeekPosition] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   // Refs to track playback timing for progress calculation
   const playbackStartTimeRef = useRef(0)
@@ -282,6 +284,58 @@ const App: FunctionComponent = () => {
     }
   }
 
+  const handleExport = async () => {
+    const audioBuffer = player.buffer?.get()
+    if (!audioBuffer || !settings.duration) return
+
+    setIsExporting(true)
+    try {
+      // Calculate the rendered duration — speed changes playback length
+      const duration = settings.duration / settings.speed
+
+      const result = await Tone.Offline(async () => {
+        // Create a fresh audio chain inside the offline context
+        const offlinePlayer = new Tone.Player(audioBuffer)
+        const offlineFilter = new Tone.Filter(settings.filterCutoff, "lowpass", -48)
+        const offlineComp = new Tone.Compressor(-24, 12)
+
+        // Effects
+        const distortion = new Tone.Distortion(settings.distortionDrive)
+        const reverb = new Tone.Reverb({ decay: settings.reverbDecay })
+        await reverb.ready
+        const delay = new Tone.PingPongDelay(settings.delayTime, settings.delayFeedback)
+        delay.set({ wet: settings.delayWet })
+        const chorus = new Tone.Chorus(settings.chorusRate, 3.5, settings.chorusDepth)
+        const bitcrusher = new Tone.BitCrusher(settings.bitcrusherBits)
+
+        // Build chain (mirrors rebuildChain logic)
+        let last: Tone.ToneAudioNode = offlinePlayer
+        if (settings.distortionEnabled) { last.connect(distortion); last = distortion }
+        if (settings.reverbEnabled) { last.connect(reverb); last = reverb }
+        if (settings.delayEnabled) { last.connect(delay); last = delay }
+        if (settings.chorusEnabled) { last.connect(chorus); (chorus as any).start(); last = chorus }
+        if (settings.bitcrusherEnabled) { last.connect(bitcrusher); last = bitcrusher }
+        last.connect(offlineFilter)
+        offlineFilter.connect(offlineComp)
+        offlineComp.toDestination()
+
+        // Configure & play
+        offlinePlayer.loop = false
+        offlinePlayer.playbackRate = settings.speed
+        offlinePlayer.start(0)
+      }, duration)
+
+      // Convert to WAV and trigger download
+      const wavBlob = audioBufferToWavBlob(result.get()!)
+      const baseName = settings.file!.name.replace(/\.[^/.]+$/, "")
+      downloadBlob(wavBlob, `${baseName}_scrunked.wav`)
+    } catch (err) {
+      console.error("Export failed:", err)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (<>
     <QueryClientProvider client={queryClient}>
     <ThemeProvider theme={theme}>
@@ -319,12 +373,27 @@ const App: FunctionComponent = () => {
                       <Button onClick={handlePlayPauseToggle}>{isPlaying ? <PauseIcon /> : <PlayArrowIcon />}</Button>
                     </Box>
                   </Grid>
-                  <Grid item xs={9}>
+                  <Grid item xs={7}>
                     <Box sx={{ m: 1 }} ref={waveformRef}></Box>
                   </Grid>
                   <Grid item xs={1}>
                     <Box display="flex" height="100%" justifyContent="center" alignItems="center">
                       {Duration.fromObject({ seconds: settings.duration }).toFormat("mm:ss")}
+                    </Box>
+                  </Grid>
+                  <Grid item xs={2}>
+                    <Box display="flex" height="100%" justifyContent="center" alignItems="center">
+                      <Tooltip title="Export processed audio as WAV">
+                        <span>
+                          <Button
+                            onClick={handleExport}
+                            disabled={isExporting || !settings.file}
+                            size="small"
+                          >
+                            {isExporting ? "..." : <FileDownloadIcon />}
+                          </Button>
+                        </span>
+                      </Tooltip>
                     </Box>
                   </Grid>
                 </Grid>

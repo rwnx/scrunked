@@ -10,6 +10,7 @@ These are user-facing changes. To see the changes in the code between versions y
 - Waveform scrubbing — click anywhere on the waveform to seek to that position in the track
 - Waveform progress indicator now stays in sync with Tone.js playback position
 - Toggleable audio effects: Distortion, Reverb, Delay, Chorus, BitCrusher — each can be enabled/disabled independently with zero CPU overhead when turned off
+- Export processed audio as WAV file — render all effects and settings via Tone.Offline and download the result
 
 ### Fixed
 
