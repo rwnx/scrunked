@@ -30,10 +30,7 @@ import { getScaleValue, getValueFromScale, humanFormat, audioBufferToWavBlob, do
 import WaveSurfer from 'wavesurfer.js';
 import LoopIcon from '@mui/icons-material/Loop';
 import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import LinkIcon from '@mui/icons-material/Link';
-import LinkOffIcon from '@mui/icons-material/LinkOff';
-import IconButton from '@mui/material/IconButton';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import {ChromeIcon} from "./icons"
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { SvgIcon } from '@mui/material';
@@ -133,7 +130,6 @@ const filterCutoffMarks = [
 // ── Effect theming ──────────────────────────────────────────────
 const EFFECT_COLORS = {
   speed: '#4fc3f7',     // light blue — time domain
-  pitch: '#4fc3f7',     // light blue — time domain
   distortion: '#ef5350', // red — waveshaping / harmonic
   reverb: '#66bb6a',    // green — spatial
   delay: '#26a69a',     // teal — time-based echo
@@ -149,12 +145,11 @@ const EFFECT_TOOLTIPS: Record<string, string> = {
   chorus: 'Thickens sound by doubling with modulation. Creates a swirling, lush texture.',
   bitcrusher: 'Reduces audio resolution for lo-fi digital artifacts. Lower bits = more crunch.',
   filter: 'Low-pass filter — cuts high frequencies for a darker, muffled sound.',
-  speedPitch: 'Change tempo and pitch independently or linked together.',
+  speed: 'Changes playback speed (tempo and pitch together, like a tape player).',
 }
 
 // ── Effect card builder ─────────────────────────────────────────
 type CardDef = {
-  key: string
   color: string
   label: string
   tooltip: string
@@ -201,18 +196,6 @@ const EffectCard = ({
       '&:hover': { boxShadow: 2 },
     }}
   >
-    {/* Signal flow indicator — small arrow at top-right */}
-    <Box
-      sx={{
-        position: 'absolute',
-        top: 4,
-        right: 4,
-        color: 'text.disabled',
-        lineHeight: 1,
-      }}
-    >
-      <ChevronRightIcon sx={{ fontSize: 14 }} />
-    </Box>
 
     <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
       <Tooltip title={tooltip} placement="top">
@@ -525,13 +508,16 @@ const App: FunctionComponent = () => {
         justifyContent="center"
         alignItems="center"
         flexDirection="column"
-        minHeight="100vh"
+        minHeight="100dvh"
+        sx={{ overflow: 'hidden' }}
       >
 
-        <Card sx={{ maxWidth: 1400, width: '100%', mx: 2, p: 3 }}>
-          <Typography variant="h5" component="div">scrunked</Typography>
-          <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>a toolkit for ruining your favourite music</Typography>
-          <CardContent>
+        <Card sx={{ maxWidth: 1400, width: '100%', mx: 2, p: 2, overflow: 'hidden' }}>
+          <Box display="flex" alignItems="baseline" gap={1} sx={{ mb: 1 }}>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 700, fontSize: 16 }}>scrunked</Typography>
+            <Typography sx={{ fontSize: 12 }} color="text.secondary">a toolkit for ruining your favourite music</Typography>
+          </Box>
+          <CardContent sx={{ "&:last-child": { pb: 1 }, pt: 0 }}>
             <Grid container mt={2} spacing={2}>
             <Grid item xs={11}>
               <Input type="file" sx={{ width: "100%", pt: 1, pb: 1 }} onChange={handleFileChange} accept={"audio/wav, audio/ogg, audio/mp3, audio/flac, audio/acc, audio/mpeg"} />
@@ -593,192 +579,39 @@ const App: FunctionComponent = () => {
               </Typography>
             </Box>
 
-            {/* Processing chain visualization */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                flexWrap: 'wrap',
-                mb: 1.5,
-                py: 1,
-                px: 1.5,
-                bgcolor: 'action.hover',
-                borderRadius: 1.5,
-              }}
-            >
-              {/* File → Speed → Distortion → Reverb → Delay → Chorus → BitCrusher → Filter → Comp → Output */}
-              {[
-                { key: 'file', label: 'File', color: 'primary.main', isEffect: false, enabled: true },
-                { key: 'speed', label: 'Speed', color: EFFECT_COLORS.speed, isEffect: true, enabled: settings.speedEnabled },
-                { key: 'distortion', label: 'Distort', color: EFFECT_COLORS.distortion, isEffect: true, enabled: settings.distortionEnabled },
-                { key: 'reverb', label: 'Reverb', color: EFFECT_COLORS.reverb, isEffect: true, enabled: settings.reverbEnabled },
-                { key: 'delay', label: 'Delay', color: EFFECT_COLORS.delay, isEffect: true, enabled: settings.delayEnabled },
-                { key: 'chorus', label: 'Chorus', color: EFFECT_COLORS.chorus, isEffect: true, enabled: settings.chorusEnabled },
-                { key: 'bitcrusher', label: 'Crush', color: EFFECT_COLORS.bitcrusher, isEffect: true, enabled: settings.bitcrusherEnabled },
-                { key: 'filter', label: 'Filter', color: EFFECT_COLORS.filter, isEffect: true, enabled: settings.filterEnabled },
-                { key: 'comp', label: 'Comp', color: '#90a4ae', isEffect: false, enabled: true },
-                { key: 'output', label: 'Output', color: 'secondary.main', isEffect: false, enabled: true },
-              ].map((node, index, arr) => (
-                <Box key={node.key} display="flex" alignItems="center" gap={0.5}>
-                  <Box
-                    sx={{
-                      px: 1,
-                      py: 0.4,
-                      borderRadius: 1.25,
-                      border: 1.5,
-                      borderColor: node.enabled ? node.color : 'divider',
-                      bgcolor: node.enabled ? `${node.color}18` : 'transparent',
-                      opacity: node.enabled ? 1 : 0.4,
-                      transition: 'all 0.25s',
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: node.enabled ? node.color : 'text.disabled',
-                        whiteSpace: 'nowrap',
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      {node.label}
-                    </Typography>
-                  </Box>
-                  {index < arr.length - 1 && (
-                    <ChevronRightIcon
-                      sx={{
-                        fontSize: 16,
-                        color: 'text.disabled',
-                        opacity: 0.5,
-                      }}
-                    />
-                  )}
-                </Box>
-              ))}
-            </Box>
-
-
             <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-              {/* Speed / Pitch — combined card with linked sliders and colored border */}
-              <Card
+              <EffectCard
+                color={EFFECT_COLORS.speed}
+                label="Speed"
+                tooltip={EFFECT_TOOLTIPS.speed}
+                enabled={settings.speedEnabled}
+                sliderValue={settings.speed}
+                sliderMin={0.1}
+                sliderMax={2}
+                sliderStep={0.01}
+                marks={[
+                  { value: 0.5, label: "0.5" },
+                  {value: 0.7334, label: "day" },
+                  { value: 1, label: "1x" },
+                  {value: 1.3636, label: "night" },
+                  { value: 2, label: "2x" },
+                ]}
+                displayValue={`${Math.round(settings.speed * 100)}%`}
+                onToggle={(checked) => set(mergeSettings({ speedEnabled: checked }))}
+                onChange={(value) => set(mergeSettings({ speed: value }))}
+              />
+              <Box
                 sx={{
-                  minWidth: 180,
-                  flex: '0 1 auto',
                   display: 'flex',
-                  flexDirection: 'column',
                   alignItems: 'center',
-                  py: 1.5,
-                  px: 0.5,
-                  opacity: settings.speedEnabled ? 1 : 0.55,
-                  borderLeft: 4,
-                  borderLeftColor: EFFECT_COLORS.speed,
-                  borderRadius: 1.5,
-                  position: 'relative',
-                  transition: 'opacity 0.2s, box-shadow 0.2s',
-                  '&:hover': { boxShadow: 2 },
+                  alignSelf: 'center',
+                  color: 'text.disabled',
+                  opacity: 0.35,
+                  flexShrink: 0,
                 }}
               >
-                {/* Signal flow arrow */}
-                <Box sx={{ position: 'absolute', top: 4, right: 4, color: 'text.disabled', lineHeight: 1 }}>
-                  <ChevronRightIcon sx={{ fontSize: 14 }} />
-                </Box>
-
-                <Tooltip title={EFFECT_TOOLTIPS.speedPitch} placement="top">
-                  <Box display="flex" alignItems="center" gap={0.5} mb={1}>
-                    <Checkbox
-                      checked={settings.speedEnabled}
-                      onChange={(e) => {
-                        const checked = e.currentTarget.checked
-                        set(mergeSettings({ speedEnabled: checked, pitchEnabled: checked }))
-                      }}
-                      sx={{ py: 0, px: 0, '& .MuiSvgIcon-root': { fontSize: 18 } }}
-                      size="small"
-                    />
-                    <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 11, lineHeight: 1.1 }}>
-                      Speed / Pitch
-                    </Typography>
-                  </Box>
-                </Tooltip>
-                <Box display="flex" alignItems="center" justifyContent="center" width="100%">
-                  {/* Speed slider */}
-                  <Box display="flex" flexDirection="column" alignItems="center" flex={1}>
-                    <Typography variant="caption" sx={{ fontSize: 10, lineHeight: 1.2, mb: 0.25, fontWeight: 500 }}>Speed</Typography>
-                    <Slider
-                      orientation="vertical"
-                      value={settings.speed}
-                      max={2}
-                      min={0.1}
-                      step={0.01}
-                      marks={[
-                        { value: 0.5, label: "0.5" },
-                        {value: 0.7334, label: "day" },
-                        { value: 1, label: "1x" },
-                        {value: 1.3636, label: "night" },
-                        { value: 2, label: "2x" },
-                      ]}
-                      sx={{ height: 120, mb: 0.25 }}
-                      disabled={!settings.speedEnabled}
-                      onChange={(e, value) => {
-                        if (Array.isArray(value)) throw new Error("single value required")
-                        let clamped = value as number
-                        if (settings.speedPitchLinked) {
-                          clamped = Math.max(0.5, clamped)
-                        }
-                        const next: Partial<Settings> = { speed: clamped }
-                        if (settings.speedPitchLinked) {
-                          // Linearly map speed position to pitch position for visual tracking only
-                          next.pitch = Math.round((clamped - 0.5) / 1.5 * 24 - 12)
-                        }
-                        set(mergeSettings(next))
-                      }}
-                    />
-                    <Typography variant="caption" sx={{ fontSize: 10 }}>{Math.round(settings.speed * 100)}%</Typography>
-                  </Box>
-
-                  {/* Link toggle */}
-                  <IconButton
-                    size="small"
-                    onClick={() => set(mergeSettings({ speedPitchLinked: !settings.speedPitchLinked }))}
-                    sx={{ mx: 0.25, mt: -2 }}
-                    disabled={!settings.speedEnabled}
-                    title={settings.speedPitchLinked ? "Unlink sliders" : "Link sliders"}
-                  >
-                    {settings.speedPitchLinked ? <LinkIcon sx={{ fontSize: 16 }} /> : <LinkOffIcon sx={{ fontSize: 16 }} />}
-                  </IconButton>
-
-                  {/* Pitch slider */}
-                  <Box display="flex" flexDirection="column" alignItems="center" flex={1}>
-                    <Typography variant="caption" sx={{ fontSize: 10, lineHeight: 1.2, mb: 0.25, fontWeight: 500 }}>Pitch</Typography>
-                    <Slider
-                      orientation="vertical"
-                      value={settings.pitch}
-                      max={12}
-                      min={-12}
-                      step={1}
-                      marks={[
-                        { value: -12, label: "-12" },
-                        { value: 0, label: "0" },
-                        { value: 12, label: "+12" },
-                      ]}
-                      sx={{ height: 120, mb: 0.25 }}
-                      disabled={!settings.speedEnabled}
-                      onChange={(e, value) => {
-                        if (Array.isArray(value)) throw new Error("single value required")
-                        const next: Partial<Settings> = { pitch: value }
-                        if (settings.speedPitchLinked) {
-                          // Linearly map pitch position to speed position for visual tracking only
-                          next.speed = ((value as number) + 12) / 24 * 1.5 + 0.5
-                        }
-                        set(mergeSettings(next))
-                      }}
-                    />
-                    <Typography variant="caption" sx={{ fontSize: 10 }}>{settings.pitch > 0 ? `+${settings.pitch}` : settings.pitch}st</Typography>
-                  </Box>
-                </Box>
-              </Card>
-
+                <ArrowForwardIcon sx={{ fontSize: 20 }} />
+              </Box>
               {/* Distortion */}
               <EffectCard
                 color={EFFECT_COLORS.distortion}
@@ -793,7 +626,18 @@ const App: FunctionComponent = () => {
                 onToggle={(checked) => set(mergeSettings({ distortionEnabled: checked }))}
                 onChange={(value) => set(mergeSettings({ distortionDrive: value }))}
               />
-
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                  color: 'text.disabled',
+                  opacity: 0.35,
+                  flexShrink: 0,
+                }}
+              >
+                <ArrowForwardIcon sx={{ fontSize: 20 }} />
+              </Box>
               {/* Reverb */}
               <EffectCard
                 color={EFFECT_COLORS.reverb}
@@ -808,7 +652,18 @@ const App: FunctionComponent = () => {
                 onToggle={(checked) => set(mergeSettings({ reverbEnabled: checked }))}
                 onChange={(value) => set(mergeSettings({ reverbDecay: value }))}
               />
-
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                  color: 'text.disabled',
+                  opacity: 0.35,
+                  flexShrink: 0,
+                }}
+              >
+                <ArrowForwardIcon sx={{ fontSize: 20 }} />
+              </Box>
               {/* Delay */}
               <EffectCard
                 color={EFFECT_COLORS.delay}
@@ -823,7 +678,18 @@ const App: FunctionComponent = () => {
                 onToggle={(checked) => set(mergeSettings({ delayEnabled: checked }))}
                 onChange={(value) => set(mergeSettings({ delayTime: value }))}
               />
-
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                  color: 'text.disabled',
+                  opacity: 0.35,
+                  flexShrink: 0,
+                }}
+              >
+                <ArrowForwardIcon sx={{ fontSize: 20 }} />
+              </Box>
               {/* Chorus */}
               <EffectCard
                 color={EFFECT_COLORS.chorus}
@@ -838,7 +704,18 @@ const App: FunctionComponent = () => {
                 onToggle={(checked) => set(mergeSettings({ chorusEnabled: checked }))}
                 onChange={(value) => set(mergeSettings({ chorusRate: value }))}
               />
-
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                  color: 'text.disabled',
+                  opacity: 0.35,
+                  flexShrink: 0,
+                }}
+              >
+                <ArrowForwardIcon sx={{ fontSize: 20 }} />
+              </Box>
               {/* BitCrusher */}
               <EffectCard
                 color={EFFECT_COLORS.bitcrusher}
@@ -858,7 +735,18 @@ const App: FunctionComponent = () => {
                 onToggle={(checked) => set(mergeSettings({ bitcrusherEnabled: checked }))}
                 onChange={(value) => set(mergeSettings({ bitcrusherBits: value }))}
               />
-
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                  color: 'text.disabled',
+                  opacity: 0.35,
+                  flexShrink: 0,
+                }}
+              >
+                <ArrowForwardIcon sx={{ fontSize: 20 }} />
+              </Box>
               {/* Filter */}
               <EffectCard
                 color={EFFECT_COLORS.filter}

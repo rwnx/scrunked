@@ -5,39 +5,19 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ## [Unreleased]
 
-### Added
-
-- Visual processing chain diagram showing the full signal flow from File through all effects (Speed → Distortion → Reverb → Delay → Chorus → BitCrusher → Filter → Compressor) to Output — each node lights up with its effect colour when enabled and fades when disabled, making the signal path readable at a glance
-
 ### Changed
 
-- Removed PitchShift and independent pitch control — Speed slider now changes `playbackRate` directly (natural tempo + pitch change like a tape player), replacing the previous combined Speed/Pitch card with linked sliders
-- Changelog display now uses build-time inlining (`?raw` import) instead of runtime fetch — removed `react-query` and `vite-plugin-static-copy` dependencies
+- Speed control simplified to single EffectCard — removed pitch slider, link toggle, and all dual-slider logic; speed-only with `playbackRate` control (0.1x–2x)
+- Header made more compact: title reduced to `h6`/16px with subtitle inline and tighter padding
+- Visual pipeline connectors added between each effect card using arrow icons, replacing the separate pipeline visualization strip above the effects
+- Removed individual flow arrow indicator from each EffectCard
+- Outer container body overflow fixed with `overflow: hidden` on html/body and card
+- Card padding reduced from `p: 3` to `p: 2`; CardContent padding tightened
+- Removed unused imports: `ChevronRightIcon`, `LinkIcon`, `LinkOffIcon`, `IconButton`
 
 ### Added
 
-- Waveform scrubbing — click anywhere on the waveform to seek to that position in the track
-- Waveform progress indicator now stays in sync with Tone.js playback position
-- Toggleable audio effects: Distortion, Reverb, Delay, Chorus, BitCrusher — each can be enabled/disabled independently with zero CPU overhead when turned off
-- Export processed audio as WAV file — render all effects and settings via Tone.Offline and download the result
-- All effects are now displayed as responsive cards with vertical sliders, laid out in signal-processing order (Speed → Pitch → Distort → Reverb → Delay → Chorus → Crush → Filter) so the chain is readable at a glance
-- Speed and Pitch are now separate togglable controls — Speed changes playback rate (tempo + pitch together), Pitch adds independent semitone shift via PitchShift
-- Filter is now a togglable effect in the chain (was always-on), allowing an uncoloured signal path
-
-### Changed
-
-- Effects section layout redesigned: each effect is a self-contained card with checkbox, vertical slider, and value — no more grid rows
-- Removed subtitle about saving CPU on effect toggle
-- Outer container card is now responsive (`maxWidth: 1400, width: 100%`) instead of a fixed 500px
-- Effect cards wrap onto new lines on narrow screens instead of a scrollbar
-- UI redesigned with narrower effect cards (100px min-width), colored left borders per effect type, signal flow arrows on each card, and descriptive tooltips on all effect labels
-- Speed/Pitch card reduced to 180px min-width with compact sliders (120px height)
-- Outer container padding reduced from 24px to 16px for a tighter layout
-- Speed marks shortened from "daycore"/"nightcore" to "day"/"night" for compactness
-
-### Fixed
-
-- Corrected compressor parameters to prevent quiet output and clipping
+- Visual connector arrows between effect cards show the signal flow pipeline
 
 ## [v0.1.1] - 2023-09-12
 ### Fixed
