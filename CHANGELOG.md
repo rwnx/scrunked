@@ -24,7 +24,11 @@ These are user-facing changes. To see the changes in the code between versions y
 - Effects section layout redesigned: each effect is a self-contained card with checkbox, vertical slider, and value — no more grid rows
 - Removed subtitle about saving CPU on effect toggle
 - Outer container card is now responsive (`maxWidth: 1400, width: 100%`) instead of a fixed 500px
-- Effect cards wrap onto new lines on narrow screens instead of showing a scrollbar
+- Effect cards wrap onto new lines on narrow screens instead of a scrollbar
+- UI redesigned with narrower effect cards (100px min-width), colored left borders per effect type, signal flow arrows on each card, and descriptive tooltips on all effect labels
+- Speed/Pitch card reduced to 180px min-width with compact sliders (120px height)
+- Outer container padding reduced from 24px to 16px for a tighter layout
+- Speed marks shortened from "daycore"/"nightcore" to "day"/"night" for compactness
 
 ### Fixed
 
