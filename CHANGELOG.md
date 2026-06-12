@@ -32,6 +32,22 @@ These are user-facing changes. To see the changes in the code between versions y
 
 - Visual connector arrows between effect cards show the signal flow pipeline
 
+---
+
+## UI Polish
+
+### Changed
+
+- Custom MUI theme with refined dark/light mode backgrounds (`#0d1117`/`#f5f7fa`), rounded corners (12px), Inter font, and card style overrides
+- EffectCard redesigned: elevation when enabled, subtle background tint matching effect color, color-matched slider track/thumb, disabled labels with strikethrough, full border with color accent
+- Pipeline connectors (`PipeConnector` component) now color-coded to match the preceding effect, extracted as reusable component
+- Player controls redesigned: circular FAB play/pause button, styled waveform container with background, tabular-nums duration display, circular outline export button
+- Header enhanced with a primary-colored play icon badge
+- Footer unified into a single flex row with grouped links (Screw, Chrome badge, Changelog, GitHub button)
+- Outer container uses `background.default` with vertical padding, scrollable overflow
+- "Effects" section renamed to "Effects Chain" with uppercase styling and a decorative divider line
+- File input grid spacing tightened
+
 ## [v0.1.1] - 2023-09-12
 ### Fixed
 

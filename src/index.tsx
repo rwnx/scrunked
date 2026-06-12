@@ -195,6 +195,7 @@ const EffectCard = ({
   onChange,
 }: CardDef) => (
   <Card
+    elevation={enabled ? 2 : 0}
     sx={{
       minWidth: 100,
       flex: '0 1 auto',
@@ -203,16 +204,24 @@ const EffectCard = ({
       alignItems: 'center',
       py: 1.5,
       px: 0.5,
-      opacity: enabled ? 1 : 0.55,
+      opacity: enabled ? 1 : 0.5,
+      border: '1px solid',
+      borderColor: enabled ? `${color}44` : 'divider',
       borderLeft: 4,
       borderLeftColor: color,
-      borderRadius: 1.5,
+      borderRadius: 2,
       position: 'relative',
-      transition: 'opacity 0.2s, box-shadow 0.2s',
-      '&:hover': { boxShadow: 2 },
+      bgcolor: enabled ? `${color}08` : 'transparent',
+      transition: 'all 0.25s ease',
+      '&:hover': {
+        boxShadow: enabled ? 4 : 0,
+        bgcolor: enabled ? `${color}12` : 'action.hover',
+      },
+      '& .MuiSlider-thumb': {
+        display: enabled ? 'block' : 'none',
+      },
     }}
   >
-
     <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
       <Tooltip title={tooltip} placement="top">
         <Checkbox
@@ -222,7 +231,17 @@ const EffectCard = ({
           size="small"
         />
       </Tooltip>
-      <Typography variant="caption" sx={{ fontSize: 11, lineHeight: 1.1, fontWeight: 500 }}>
+      <Typography
+        variant="caption"
+        sx={{
+          fontSize: 11,
+          lineHeight: 1.1,
+          fontWeight: 600,
+          color: enabled ? color : 'text.disabled',
+          textDecoration: enabled ? 'none' : 'line-through',
+          transition: 'color 0.2s',
+        }}
+      >
         {label}
       </Typography>
     </Box>
@@ -233,17 +252,47 @@ const EffectCard = ({
       min={sliderMin}
       step={sliderStep}
       marks={marks}
-      sx={{ height: 120, mb: 0.25 }}
+      sx={{
+        height: 120,
+        mb: 0.25,
+        '& .MuiSlider-track': {
+          border: 'none',
+          bgcolor: enabled ? color : undefined,
+        },
+        '& .MuiSlider-thumb': {
+          bgcolor: enabled ? color : undefined,
+        },
+        '& .MuiSlider-rail': {
+          opacity: enabled ? 0.3 : 0.15,
+        },
+      }}
       disabled={!enabled}
       onChange={(_, value) => {
         if (Array.isArray(value)) throw new Error('single value required')
         onChange(value as number)
       }}
     />
-    <Typography variant="caption" sx={{ fontSize: 11 }}>
+    <Typography variant="caption" sx={{ fontSize: 11, fontWeight: 500, color: enabled ? 'text.primary' : 'text.disabled' }}>
       {displayValue}
     </Typography>
   </Card>
+)
+
+const PipeConnector = ({ color }: { color?: string }) => (
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      alignSelf: 'center',
+      color: color ?? 'text.disabled',
+      opacity: color ? 0.7 : 0.25,
+      flexShrink: 0,
+      transition: 'color 0.2s, opacity 0.2s',
+      mx: 0.25,
+    }}
+  >
+    <ArrowForwardIcon sx={{ fontSize: 22 }} />
+  </Box>
 )
 
 const App: FunctionComponent = () => {
@@ -254,6 +303,32 @@ const App: FunctionComponent = () => {
       createTheme({
         palette: {
           mode: prefersDarkMode ? 'dark' : 'light',
+          ...(prefersDarkMode
+            ? {
+                background: {
+                  default: '#0d1117',
+                  paper: '#161b22',
+                },
+              }
+            : {
+                background: {
+                  default: '#f5f7fa',
+                  paper: '#ffffff',
+                },
+              }),
+        },
+        shape: { borderRadius: 12 },
+        typography: {
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+        },
+        components: {
+          MuiCard: {
+            styleOverrides: {
+              root: {
+                backgroundImage: 'none',
+              },
+            },
+          },
         },
       }),
     [prefersDarkMode],
@@ -552,18 +627,36 @@ const App: FunctionComponent = () => {
         alignItems="center"
         flexDirection="column"
         minHeight="100dvh"
-        sx={{ overflow: 'hidden' }}
+        sx={{
+          overflow: 'auto',
+          bgcolor: 'background.default',
+          py: 2,
+        }}
       >
 
         <Card sx={{ maxWidth: 1400, width: '100%', mx: 2, p: 2, overflow: 'hidden' }}>
-          <Box display="flex" alignItems="baseline" gap={1} sx={{ mb: 1 }}>
-            <Typography variant="h6" component="div" sx={{ fontWeight: 700, fontSize: 16 }}>scrunked</Typography>
-            <Typography sx={{ fontSize: 12 }} color="text.secondary">a toolkit for ruining your favourite music</Typography>
+          <Box display="flex" alignItems="center" gap={1.5} sx={{ mb: 1.5 }}>
+            <Box
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: 1.5,
+                bgcolor: 'primary.main',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <PlayArrowIcon sx={{ fontSize: 18, color: '#fff' }} />
+            </Box>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 700, fontSize: 16, lineHeight: 1 }}>scrunked</Typography>
+            <Typography sx={{ fontSize: 12, mt: 0.25 }} color="text.secondary">a toolkit for ruining your favourite music</Typography>
           </Box>
           <CardContent sx={{ "&:last-child": { pb: 1 }, pt: 0 }}>
-            <Grid container mt={2} spacing={2}>
+            <Grid container spacing={1}>
             <Grid item xs={11}>
-              <Input type="file" sx={{ width: "100%", pt: 1, pb: 1 }} onChange={handleFileChange} accept={"audio/wav, audio/ogg, audio/mp3, audio/flac, audio/acc, audio/mpeg"} />
+              <Input type="file" sx={{ width: "100%", pt: 0.5, pb: 0.5 }} onChange={handleFileChange} accept={"audio/wav, audio/ogg, audio/mp3, audio/flac, audio/acc, audio/mpeg"} />
             </Grid>
             <Grid item xs={1}>
             <Tooltip title={settings.loop ? "Loop" : "Play Once"}>
@@ -576,37 +669,65 @@ const App: FunctionComponent = () => {
 
 
             {settings.file || settings.nextFile ? <>
-              <Grid container spacing={2}>
-                  <Grid item xs={2}>
-                    <Box display="flex" height="100%" justifyContent="center" alignItems="center">
-                      <Button onClick={handlePlayPauseToggle}>{isPlaying ? <PauseIcon /> : <PlayArrowIcon />}</Button>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={7}>
-                    <Box sx={{ m: 1 }} ref={waveformRef}></Box>
-                  </Grid>
-                  <Grid item xs={1}>
-                    <Box display="flex" height="100%" justifyContent="center" alignItems="center">
-                      {Duration.fromObject({ seconds: settings.duration }).toFormat("mm:ss")}
-                    </Box>
-                  </Grid>
-                  <Grid item xs={2}>
-                    <Box display="flex" height="100%" justifyContent="center" alignItems="center">
-                      <Tooltip title="Export processed audio as WAV">
-                        <span>
-                          <Button
-                            onClick={handleExport}
-                            disabled={isExporting || !settings.file}
-                            size="small"
-                          >
-                            {isExporting ? "..." : <FileDownloadIcon />}
-                          </Button>
-                        </span>
-                      </Tooltip>
-                    </Box>
-                  </Grid>
-                </Grid>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  mt: 1,
+                  mb: 0.5,
+                  bgcolor: 'action.hover',
+                  borderRadius: 2,
+                  p: 1.5,
+                }}
+              >
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handlePlayPauseToggle}
+                  sx={{
+                    minWidth: 48,
+                    minHeight: 48,
+                    width: 48,
+                    height: 48,
+                    borderRadius: '50%',
+                    flexShrink: 0,
+                    p: 0,
+                  }}
+                >
+                  {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+                </Button>
 
+                <Box sx={{ flex: 1, minWidth: 0 }} ref={waveformRef} />
+
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontVariantNumeric: 'tabular-nums',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                  color="text.secondary"
+                >
+                  {Duration.fromObject({ seconds: settings.duration }).toFormat("mm:ss")}
+                </Typography>
+
+                <Tooltip title="Export processed audio as WAV">
+                  <span>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={handleExport}
+                      disabled={isExporting || !settings.file}
+                      sx={{ minWidth: 36, minHeight: 36, borderRadius: '50%', p: 0 }}
+                    >
+                      {isExporting ? "..." : <FileDownloadIcon sx={{ fontSize: 18 }} />}
+                    </Button>
+                  </span>
+                </Tooltip>
+              </Box>
             </> : null}
 
 
@@ -675,12 +796,22 @@ const App: FunctionComponent = () => {
             {/* Effects Section */}
             <Box
               display="flex"
-              alignItems="baseline"
-              sx={{ mt: 1, mb: 1 }}
+              alignItems="center"
+              sx={{ mt: 2, mb: 1.5 }}
             >
-              <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600 }}>
-                Effects
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: 12,
+                  textTransform: 'uppercase',
+                  letterSpacing: 1,
+                  color: 'text.secondary',
+                }}
+              >
+                Effects Chain
               </Typography>
+              <Box sx={{ flex: 1, ml: 1.5, height: 1, bgcolor: 'divider', opacity: 0.5 }} />
             </Box>
 
             <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
@@ -704,18 +835,7 @@ const App: FunctionComponent = () => {
                 onToggle={(checked) => set(mergeSettings({ speedEnabled: checked }))}
                 onChange={(value) => set(mergeSettings({ speed: value }))}
               />
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  alignSelf: 'center',
-                  color: 'text.disabled',
-                  opacity: 0.35,
-                  flexShrink: 0,
-                }}
-              >
-                <ArrowForwardIcon sx={{ fontSize: 20 }} />
-              </Box>
+              <PipeConnector color={EFFECT_COLORS.speed} />
               {/* Distortion */}
               <EffectCard
                 color={EFFECT_COLORS.distortion}
@@ -730,18 +850,7 @@ const App: FunctionComponent = () => {
                 onToggle={(checked) => set(mergeSettings({ distortionEnabled: checked }))}
                 onChange={(value) => set(mergeSettings({ distortionDrive: value }))}
               />
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  alignSelf: 'center',
-                  color: 'text.disabled',
-                  opacity: 0.35,
-                  flexShrink: 0,
-                }}
-              >
-                <ArrowForwardIcon sx={{ fontSize: 20 }} />
-              </Box>
+              <PipeConnector color={EFFECT_COLORS.distortion} />
               {/* Reverb */}
               <EffectCard
                 color={EFFECT_COLORS.reverb}
@@ -756,21 +865,10 @@ const App: FunctionComponent = () => {
                 onToggle={(checked) => set(mergeSettings({ reverbEnabled: checked }))}
                 onChange={(value) => set(mergeSettings({ reverbDecay: value }))}
               />
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  alignSelf: 'center',
-                  color: 'text.disabled',
-                  opacity: 0.35,
-                  flexShrink: 0,
-                }}
-              >
-                <ArrowForwardIcon sx={{ fontSize: 20 }} />
-              </Box>
-
-              {/* Delay — with BPM sync */}
+              <PipeConnector color={EFFECT_COLORS.reverb} />
+{/* Delay — with BPM sync */}
               <Card
+                elevation={settings.delayEnabled ? 2 : 0}
                 sx={{
                   minWidth: 120,
                   flex: '0 1 auto',
@@ -779,12 +877,18 @@ const App: FunctionComponent = () => {
                   alignItems: 'center',
                   py: 1.5,
                   px: 0.5,
-                  opacity: settings.delayEnabled ? 1 : 0.55,
+                  opacity: settings.delayEnabled ? 1 : 0.5,
+                  border: '1px solid',
+                  borderColor: settings.delayEnabled ? `${EFFECT_COLORS.delay}44` : 'divider',
                   borderLeft: 4,
                   borderLeftColor: EFFECT_COLORS.delay,
-                  borderRadius: 1.5,
-                  transition: 'opacity 0.2s, box-shadow 0.2s',
-                  '&:hover': { boxShadow: 2 },
+                  borderRadius: 2,
+                  bgcolor: settings.delayEnabled ? `${EFFECT_COLORS.delay}08` : 'transparent',
+                  transition: 'all 0.25s ease',
+                  '&:hover': {
+                    boxShadow: settings.delayEnabled ? 4 : 0,
+                    bgcolor: settings.delayEnabled ? `${EFFECT_COLORS.delay}12` : 'action.hover',
+                  },
                 }}
               >
                 <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
@@ -866,18 +970,8 @@ const App: FunctionComponent = () => {
                   </Button>
                 </Tooltip>
               </Card>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  alignSelf: 'center',
-                  color: 'text.disabled',
-                  opacity: 0.35,
-                  flexShrink: 0,
-                }}
-              >
-                <ArrowForwardIcon sx={{ fontSize: 20 }} />
-              </Box>
+              <PipeConnector color={EFFECT_COLORS.delay} />
+              
               {/* Chorus */}
               <EffectCard
                 color={EFFECT_COLORS.chorus}
@@ -892,18 +986,7 @@ const App: FunctionComponent = () => {
                 onToggle={(checked) => set(mergeSettings({ chorusEnabled: checked }))}
                 onChange={(value) => set(mergeSettings({ chorusRate: value }))}
               />
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  alignSelf: 'center',
-                  color: 'text.disabled',
-                  opacity: 0.35,
-                  flexShrink: 0,
-                }}
-              >
-                <ArrowForwardIcon sx={{ fontSize: 20 }} />
-              </Box>
+              <PipeConnector color={EFFECT_COLORS.chorus} />
               {/* BitCrusher */}
               <EffectCard
                 color={EFFECT_COLORS.bitcrusher}
@@ -923,18 +1006,7 @@ const App: FunctionComponent = () => {
                 onToggle={(checked) => set(mergeSettings({ bitcrusherEnabled: checked }))}
                 onChange={(value) => set(mergeSettings({ bitcrusherBits: value }))}
               />
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  alignSelf: 'center',
-                  color: 'text.disabled',
-                  opacity: 0.35,
-                  flexShrink: 0,
-                }}
-              >
-                <ArrowForwardIcon sx={{ fontSize: 20 }} />
-              </Box>
+              <PipeConnector color={EFFECT_COLORS.bitcrusher} />
               {/* Filter */}
               <EffectCard
                 color={EFFECT_COLORS.filter}
@@ -960,11 +1032,35 @@ const App: FunctionComponent = () => {
 
           </CardContent>
         </Card>
-        <Typography sx={{ fontSize: 14, mt: 1 }} color="text.secondary">Inspired by <Link href="https://github.com/dumbmatter/screw">Screw</Link> 🔩 Built with love by <Link href="https://github.com/rwnx">Rowan</Link>✨</Typography>
-
-        <Typography sx={{ fontSize: 14, mt: 1, display: "flex", gap: 0.5 }}color="text.secondary">Runs best in <SvgIcon fontSize='small'>{ChromeIcon}</SvgIcon> Chrome</Typography>
-        <Changelog />
-        <Typography sx={{ mt: 1 }} color="text.secondary"> <Button href={"https://github.com/rwnx/scrunked"}><GitHubIcon sx={{ mr: 0.5 }} />view on github</Button> </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            flexWrap: 'wrap',
+            mt: 1.5,
+            mb: 1,
+            px: 2,
+          }}
+        >
+          <Typography sx={{ fontSize: 12 }} color="text.secondary">
+            Inspired by <Link href="https://github.com/dumbmatter/screw" sx={{ fontSize: 12 }}>Screw</Link> 🔩
+          </Typography>
+          <Typography sx={{ fontSize: 12, display: "flex", gap: 0.5, alignItems: 'center' }} color="text.secondary">
+            Best in <SvgIcon fontSize='small'>{ChromeIcon}</SvgIcon> Chrome
+          </Typography>
+          <Changelog />
+          <Button
+            href={"https://github.com/rwnx/scrunked"}
+            size="small"
+            variant="text"
+            sx={{ fontSize: 12, textTransform: 'none' }}
+          >
+            <GitHubIcon sx={{ mr: 0.5, fontSize: 14 }} />
+            GitHub
+          </Button>
+        </Box>
       </Box>
     </ThemeProvider>
   </>
