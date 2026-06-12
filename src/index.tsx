@@ -4,6 +4,7 @@ import * as Tone from 'tone'
 import { ChangeEventHandler } from 'preact/compat';
 
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
 
 import { Duration } from 'luxon';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -315,7 +316,7 @@ const App: FunctionComponent = () => {
               <Grid container spacing={2}>
                   <Grid item xs={2}>
                     <Box display="flex" height="100%" justifyContent="center" alignItems="center">
-                      <Button onClick={handlePlayPauseToggle}>{<PlayArrowIcon />}</Button>
+                      <Button onClick={handlePlayPauseToggle}>{isPlaying ? <PauseIcon /> : <PlayArrowIcon />}</Button>
                     </Box>
                   </Grid>
                   <Grid item xs={9}>
