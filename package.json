@@ -18,7 +18,8 @@
 		"preact": "^10.13.1",
 		"react-query": "^3.39.3",
 		"tone": "^14.7.77",
-		"wavesurfer.js": "^7.3.1"
+		"wavesurfer.js": "^7.3.1",
+		"zod": "^4.4.3"
 	},
 	"devDependencies": {
 		"@preact/preset-vite": "^2.5.0",

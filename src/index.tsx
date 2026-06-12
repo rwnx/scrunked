@@ -34,6 +34,7 @@ import {ChromeIcon} from "./icons"
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { SvgIcon } from '@mui/material';
 import { QueryClientProvider, QueryClient } from 'react-query';
+import { z } from 'zod';
 
 type Settings = {
   filterCutoff: number,
@@ -60,6 +61,53 @@ type Settings = {
 }
 
 const FILTER_MAX = 22_000
+
+const STORAGE_KEY = "scrunked:settings"
+
+// Schema for the subset of Settings that persists across sessions
+// (excludes session-only fields like file, duration, state)
+const persistedSettingsSchema = z.object({
+  filterCutoff: z.number(),
+  speed: z.number(),
+  loop: z.boolean(),
+  distortionEnabled: z.boolean(),
+  distortionDrive: z.number(),
+  reverbEnabled: z.boolean(),
+  reverbDecay: z.number(),
+  delayEnabled: z.boolean(),
+  delayTime: z.number(),
+  delayFeedback: z.number(),
+  delayWet: z.number(),
+  chorusEnabled: z.boolean(),
+  chorusRate: z.number(),
+  chorusDepth: z.number(),
+  bitcrusherEnabled: z.boolean(),
+  bitcrusherBits: z.number(),
+})
+
+/** Picks only persisted fields from a full Settings object, validated via Zod. */
+function pickPersisted(settings: Settings): z.infer<typeof persistedSettingsSchema> {
+  return persistedSettingsSchema.parse(settings)
+}
+
+function loadPersistedSettings(): Partial<Settings> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = persistedSettingsSchema.partial().parse(JSON.parse(raw))
+    return parsed as Partial<Settings>
+  } catch {
+    return {}
+  }
+}
+
+function savePersistedSettings(settings: Settings): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(pickPersisted(settings)))
+  } catch {
+    // localStorage full or unavailable — silently ignore
+  }
+}
 
 const mergeSettings = (next: Partial<Settings>) => (state: Settings) => ({
   ...state,
@@ -112,6 +160,7 @@ const App: FunctionComponent = () => {
     chorusDepth: 0.7,
     bitcrusherEnabled: false,
     bitcrusherBits: 8,
+    ...loadPersistedSettings(),
   })
 
   const throttledSettings = useThrottle(settings, 250)
@@ -263,6 +312,11 @@ const App: FunctionComponent = () => {
 
     syncPlayerSettings()
   }, [throttledSettings, waveform, rebuildChain])
+
+  // Persist settings to localStorage on every change
+  useEffect(() => {
+    savePersistedSettings(settings)
+  }, [settings])
 
 
   const handlePlayPauseToggle = () => {
