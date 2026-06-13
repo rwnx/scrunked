@@ -88,7 +88,7 @@ const App: FunctionComponent = () => {
   const [bitcrusher] = useState(() => new Tone.BitCrusher(8))
   const [tremolo] = useState(() => new Tone.Tremolo(5, 0.5))
   const [phaser] = useState(() => new Tone.Phaser({ frequency: 0.5, octaves: 5, baseFrequency: 500 }))
-  const [autoPan] = useState(() => new Tone.AutoPan(0.5))
+  const [autoPan] = useState(() => new Tone.AutoPanner(0.5))
 
   const waveformRef = useRef<HTMLDivElement | null>(null)
   const [waveform, setWaveform] = useState<WaveSurfer | undefined>()
@@ -231,7 +231,7 @@ const App: FunctionComponent = () => {
         const bc = new Tone.BitCrusher(settings.bitcrusherBits)
         const tr = new Tone.Tremolo(settings.tremoloRate, settings.tremoloDepth)
         const ph = new Tone.Phaser({ frequency: settings.phaserRate, octaves: 5, baseFrequency: 500 })
-        const ap = new Tone.AutoPan(settings.autoPanRate)
+        const ap = new Tone.AutoPanner(settings.autoPanRate)
         ap.set({ depth: settings.autoPanDepth })
         let last: Tone.ToneAudioNode = p
         if (settings.distortionEnabled) { last.connect(d); last = d }

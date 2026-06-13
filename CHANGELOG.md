@@ -34,6 +34,7 @@ These are user-facing changes. To see the changes in the code between versions y
 ### Fixed
 
 - BPM detection now decodes audio data directly from the file blob (via `OfflineAudioContext.decodeAudioData`) instead of relying on `player.buffer.get()`, which could silently return null on some browsers
+- Fixed `Uncaught TypeError: Tone.AutoPan is not a constructor` — Tone.js v14 renamed `AutoPan` to `AutoPanner`; updated constructor call accordingly
 
 ## [v0.1.1] - 2023-09-12
 ### Fixed
