@@ -7,11 +7,15 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ### Added
 
-- Visual processing chain diagram showing the full signal flow from File through all effects (Speed → Distortion → Reverb → Delay → Chorus → BitCrusher → Filter → Compressor) to Output — each node lights up with its effect colour when enabled and fades when disabled, making the signal path readable at a glance
+- Three new effects: Tremolo (rhythmic volume modulation with rate + depth), Phaser (sweeping notch filter with rate + depth), and AutoPan (automatic stereo panning with rate + depth) — 10 effects total in the chain
+- Completely redesigned UI: modern glassmorphism-style effect cards with backdrop blur, drag-and-drop file upload area, improved waveform transport bar, compact header with loop toggle, and responsive layout
+- Live active-chain display showing which effects are enabled in pipeline order (e.g. "Speed → Dist → Phase → Verb → Delay → LPF → Pan")
+- Secondary sliders on multi-parameter effects (Phaser/Tremolo/Chorus/AutoPan depth controls) integrated directly into each card
 - BPM auto-detection via autocorrelation when a new audio file is loaded — detected tempo is displayed and can be applied as the active BPM
 - Tempo section with manual BPM override (40–300 bpm range) and one-click Apply of detected BPM
 - Delay sync-to-BPM mode — toggle the Delay card's "Sync" button to switch between manual time and note divisions (1/8, 1/4, 1/2, 1/1), with the actual delay time computed from the active BPM
 - Visual connector arrows between effect cards show the signal flow pipeline
+- Settings persistence via localStorage (Zod-validated) across sessions
 
 ### Changed
 
@@ -20,29 +24,16 @@ These are user-facing changes. To see the changes in the code between versions y
 - Added Chorus sync-to-BPM: when sync is toggled on the Chorus card, the modulation rate snaps to note divisions (1/8, 1/4, 1/2, 1/1)
 - BPM-synced delay/chorus values now account for playback speed — at 0.5x speed, delay time doubles and chorus rate halves (compensating for the audio being slower)
 - Delay and chorus manual sliders use logarithmic scaling — small values get more slider space for fine control, with marks at musically-useful points
+- Complete codebase restructuring: monolith index.tsx split into modular components (App.tsx, EffectCard.tsx, EffectsChain.tsx, TransportBar.tsx, FileDropArea.tsx, AppFooter.tsx) with centralized types in types.ts
+- Signal flow reordered: Player → Speed → [Distortion] → [Phaser] → [Tremolo] → [Reverb] → [Delay] → [Chorus] → [BitCrusher] → [Filter] → [AutoPan] → Compressor → Destination
+- Reduced waveform height from 100px to 80px for a more compact layout
+- Drag-and-drop zone with visual feedback replaces the basic file input
+- Effect cards now have rounded design with hover animations and color-coded accents
+- Slimmer pipe connectors between cards with active/inactive states
 
 ### Fixed
 
 - BPM detection now decodes audio data directly from the file blob (via `OfflineAudioContext.decodeAudioData`) instead of relying on `player.buffer.get()`, which could silently return null on some browsers
-
-### Changed
-
-- Speed control simplified to single EffectCard — removed pitch slider, link toggle, and all dual-slider logic; speed-only with `playbackRate` control (0.1x–2x)
-- Header made more compact: title reduced to `h6`/16px with subtitle inline and tighter padding
-- Visual pipeline connectors added between each effect card using arrow icons, replacing the separate pipeline visualization strip above the effects
-- Removed individual flow arrow indicator from each EffectCard
-- Outer container body overflow fixed with `overflow: hidden` on html/body and card
-- Card padding reduced from `p: 3` to `p: 2`; CardContent padding tightened
-- Removed unused imports: `ChevronRightIcon`, `LinkIcon`, `LinkOffIcon`, `IconButton`
-- Custom MUI theme with refined dark/light mode backgrounds (`#0d1117`/`#f5f7fa`), rounded corners (12px), Inter font, and card style overrides
-- EffectCard redesigned: elevation when enabled, subtle background tint matching effect color, color-matched slider track/thumb, disabled labels with strikethrough, full border with color accent
-- Pipeline connectors (`PipeConnector` component) now color-coded to match the preceding effect, extracted as reusable component
-- Player controls redesigned: circular FAB play/pause button, styled waveform container with background, tabular-nums duration display, circular outline export button
-- Header enhanced with a primary-colored play icon badge
-- Footer unified into a single flex row with grouped links (Screw, Chrome badge, Changelog, GitHub button)
-- Outer container uses `background.default` with vertical padding, scrollable overflow
-- "Effects" section renamed to "Effects Chain" with uppercase styling and a decorative divider line
-- File input grid spacing tightened
 
 ## [v0.1.1] - 2023-09-12
 ### Fixed
