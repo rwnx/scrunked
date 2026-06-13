@@ -20,6 +20,7 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
 
   const activeChain = [
     'Speed',
+    ...(settings.reverseEnabled ? ['Rev'] : []),
     ...(settings.distortionEnabled ? ['Dist'] : []),
     ...(settings.phaserEnabled ? ['Phase'] : []),
     ...(settings.tremoloEnabled ? ['Trem'] : []),
@@ -80,6 +81,15 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           displayValue={`${Math.round(settings.speed * 100)}%`}
           onToggle={(checked) => onUpdate({ speedEnabled: checked })}
           onChange={(value) => onUpdate({ speed: value })}
+        />
+
+        {/* Reverse */}
+        <EffectCard
+          color={EFFECT_COLORS.reverse}
+          label="Reverse"
+          tooltip={EFFECT_TOOLTIPS.reverse}
+          enabled={settings.reverseEnabled}
+          onToggle={(checked) => onUpdate({ reverseEnabled: checked })}
         />
 
         {/* Distortion */}

@@ -53,6 +53,7 @@ export type Settings = {
   autoPanEnabled: boolean;
   autoPanRate: number;
   autoPanDepth: number;
+  reverseEnabled: boolean;
   bpm: number;
   bpmDetected: number | null;
   delaySyncEnabled: boolean;
@@ -80,6 +81,7 @@ export const EFFECT_COLORS = {
   bitcrusher: '#ffa726',
   filter: '#42a5f5',
   autoPan: '#ec407a',
+  reverse: '#f48fb1',
 } as const
 
 export const EFFECT_TOOLTIPS: Record<string, string> = {
@@ -93,6 +95,7 @@ export const EFFECT_TOOLTIPS: Record<string, string> = {
   filter: 'Low-pass filter — cuts high frequencies for a darker, muffled sound.',
   speed: 'Changes playback speed (tempo and pitch together, like a tape player).',
   autoPan: 'Automatically pans the audio left and right for stereo movement.',
+  reverse: 'Plays the audio backwards — turn on to hear your track in reverse.',
 }
 
 export const persistedSettingsSchema = z.object({
@@ -122,6 +125,7 @@ export const persistedSettingsSchema = z.object({
   autoPanEnabled: z.boolean(),
   autoPanRate: z.number(),
   autoPanDepth: z.number(),
+  reverseEnabled: z.boolean(),
   phaserSyncEnabled: z.boolean(),
   phaserNoteDivision: z.string(),
   tremoloSyncEnabled: z.boolean(),

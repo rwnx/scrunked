@@ -12,14 +12,14 @@ export type CardDef = {
   tooltip: string
   icon?: string
   enabled: boolean
-  sliderValue: number
-  sliderMin: number
-  sliderMax: number
-  sliderStep: number
+  sliderValue?: number
+  sliderMin?: number
+  sliderMax?: number
+  sliderStep?: number
   marks?: { value: number; label: string }[]
-  displayValue: string
+  displayValue?: string
   onToggle: (checked: boolean) => void
-  onChange: (value: number) => void
+  onChange?: (value: number) => void
   children?: preact.ComponentChildren
 }
 
@@ -96,54 +96,58 @@ const EffectCard: FunctionComponent<CardDef> = ({
         {label}
       </Typography>
     </Box>
-    <Slider
-      orientation="vertical"
-      value={sliderValue}
-      max={sliderMax}
-      min={sliderMin}
-      step={sliderStep}
-      marks={marks}
-      sx={{
-        height: { xs: 90, sm: 110 },
-        mb: 0.25,
-        '& .MuiSlider-track': {
-          border: 'none',
-          bgcolor: enabled ? color : undefined,
-          transition: 'all 0.2s ease',
-        },
-        '& .MuiSlider-thumb': {
-          bgcolor: enabled ? color : undefined,
-          width: 14,
-          height: 14,
-          '&:hover, &.Mui-active': {
-            boxShadow: `0 0 0 8px ${color}22`,
+    {sliderValue !== undefined && sliderMin !== undefined && sliderMax !== undefined && (
+      <Slider
+        orientation="vertical"
+        value={sliderValue}
+        max={sliderMax}
+        min={sliderMin}
+        step={sliderStep}
+        marks={marks}
+        sx={{
+          height: { xs: 90, sm: 110 },
+          mb: 0.25,
+          '& .MuiSlider-track': {
+            border: 'none',
+            bgcolor: enabled ? color : undefined,
+            transition: 'all 0.2s ease',
           },
-        },
-        '& .MuiSlider-rail': {
-          opacity: enabled ? 0.25 : 0.1,
-        },
-        '& .MuiSlider-mark': {
-          display: enabled ? 'block' : 'none',
-        },
-      }}
-      disabled={!enabled}
-      onChange={(_, value) => {
-        if (Array.isArray(value)) throw new Error('single value required')
-        onChange(value as number)
-      }}
-    />
-    <Typography
-      variant="caption"
-      sx={{
-        fontSize: 10,
-        fontWeight: 600,
-        fontVariantNumeric: 'tabular-nums',
-        color: enabled ? 'text.primary' : 'text.disabled',
-        transition: 'color 0.2s',
-      }}
-    >
-      {displayValue}
-    </Typography>
+          '& .MuiSlider-thumb': {
+            bgcolor: enabled ? color : undefined,
+            width: 14,
+            height: 14,
+            '&:hover, &.Mui-active': {
+              boxShadow: `0 0 0 8px ${color}22`,
+            },
+          },
+          '& .MuiSlider-rail': {
+            opacity: enabled ? 0.25 : 0.1,
+          },
+          '& .MuiSlider-mark': {
+            display: enabled ? 'block' : 'none',
+          },
+        }}
+        disabled={!enabled}
+        onChange={(_, value) => {
+          if (Array.isArray(value)) throw new Error('single value required')
+          onChange?.(value as number)
+        }}
+      />
+    )}
+    {displayValue !== undefined && (
+      <Typography
+        variant="caption"
+        sx={{
+          fontSize: 10,
+          fontWeight: 600,
+          fontVariantNumeric: 'tabular-nums',
+          color: enabled ? 'text.primary' : 'text.disabled',
+          transition: 'color 0.2s',
+        }}
+      >
+        {displayValue}
+      </Typography>
+    )}
     {children && (
       <Box sx={{ mt: 0.5, width: '100%', display: 'flex', justifyContent: 'center' }}>
         {children}

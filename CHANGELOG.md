@@ -7,6 +7,7 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ### Added
 
+- Reverse effect card — toggles reverse playback via `Tone.Player.reverse`, placed next to Speed in the effects grid as a binary toggle (no slider). Waveform position and seek logic adjusts for reverse direction during playback.
 - Snapping/sync control (`SnapControl`) — reusable BPM sync widget with Snap toggle and note division selector, embedded into all time-based effect cards (Delay, Reverb, Phaser, Tremolo, Chorus, AutoPan)
 - Expanded note divisions — includes small increments down to 1/64 note, plus dotted and triplet variants (1/8., 1/4., 1/2., 1/1., 1/8t, 1/4t, 1/2t, 1/1t) for fine-grained tempo sync
 - `noteToFrequency()` utility converts note divisions to LFO frequency (Hz) for sync on rate-based effects (Phaser, Tremolo, Chorus, AutoPan)

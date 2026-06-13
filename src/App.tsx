@@ -72,6 +72,7 @@ const App: FunctionComponent = () => {
     tremoloEnabled: false, tremoloRate: 5, tremoloDepth: 0.5,
     phaserEnabled: false, phaserRate: 0.5, phaserDepth: 0.5, phaserFeedback: 0.3,
     autoPanEnabled: false, autoPanRate: 0.5, autoPanDepth: 0.5,
+    reverseEnabled: false,
     bpm: 120, bpmDetected: null,
     delaySyncEnabled: false, delayNoteDivision: '1/4',
     phaserSyncEnabled: false, phaserNoteDivision: '1/4',
@@ -151,7 +152,9 @@ const App: FunctionComponent = () => {
     const interval = setInterval(() => {
       if (player.state === 'started' && settings.duration) {
         const elapsed = Tone.now() - playbackStartTimeRef.current
-        const pos = Math.min(playbackOffsetRef.current + elapsed, settings.duration)
+        const pos = settings.reverseEnabled
+          ? Math.max(0, playbackOffsetRef.current - elapsed)
+          : Math.min(playbackOffsetRef.current + elapsed, settings.duration)
         waveform.seekTo(pos / settings.duration)
       }
     }, 50)
@@ -193,6 +196,7 @@ const App: FunctionComponent = () => {
       phaser.set({ frequency: settings.phaserSyncEnabled ? noteToFrequency(settings.phaserNoteDivision, settings.bpm) : settings.phaserRate })
       autoPan.set({ frequency: settings.autoPanSyncEnabled ? noteToFrequency(settings.autoPanNoteDivision, settings.bpm) : settings.autoPanRate, depth: settings.autoPanDepth })
       player.set({ playbackRate: settings.speedEnabled ? settings.speed : 1, loop: settings.loop })
+      player.reverse = settings.reverseEnabled
       filterNode.set({ frequency: settings.filterCutoff })
     }
     sync()
@@ -206,7 +210,9 @@ const App: FunctionComponent = () => {
       player.stop()
       if (settings.duration) {
         const elapsed = Tone.now() - playbackStartTimeRef.current
-        setSeekPosition(Math.min(playbackOffsetRef.current + elapsed, settings.duration))
+        setSeekPosition(settings.reverseEnabled
+          ? Math.max(0, playbackOffsetRef.current - elapsed)
+          : Math.min(playbackOffsetRef.current + elapsed, settings.duration))
       }
       setIsPlaying(false)
     } else {
@@ -251,7 +257,7 @@ const App: FunctionComponent = () => {
         last.connect(f)
         if (settings.autoPanEnabled) { f.connect(ap); last = ap }
         last.connect(c); c.toDestination()
-        p.loop = false; p.playbackRate = settings.speed; p.start(0)
+        p.loop = false; p.playbackRate = settings.speed; p.reverse = settings.reverseEnabled; p.start(0)
       }, dur)
       const wavBlob = audioBufferToWavBlob(result.get()!)
       const baseName = settings.file!.name.replace(/\.[^/.]+$/, '')
