@@ -23,6 +23,13 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ### Changed
 
+- Effect cards now render in a responsive CSS Grid (`repeat(auto-fill, minmax(130px, 1fr))`) instead of a flex row with pipe connectors — cards reflow neatly into columns on smaller screens without visual artifacts
+- Removed `PipeConnector` arrow icons between cards (the text-based chain display still shows signal flow)
+- Effect card sizing is fully responsive: reduced padding and slider height on small screens (≤600px), full width within grid cells
+- Main card container uses responsive padding/margins (`mx: { xs: 1, sm: 2 }`, `p: { xs: 1.5, sm: 2.5 }`)
+- App header wraps the subtitle to a new line on narrow viewports
+- Transport bar uses responsive gaps and padding
+- Tempo section uses `flexWrap` for improved mobile layout
 - Delay card refactored to use unified `SnapControl` widget instead of manual Sync button + select
 - Reduced slider width on snap-enabled cards to `0.5` midpoint when sync is active (consistent visual cue across all effects)
 - Note division select dropdown width increased from 36px to 46px to accommodate longer labels (e.g. 1/64, 1/8t)

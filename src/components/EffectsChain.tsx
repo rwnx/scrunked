@@ -2,7 +2,6 @@ import { FunctionComponent } from 'preact';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Slider from '@mui/material/Slider';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import EffectCard from './EffectCard';
 import SnapControl from './SnapControl';
 import {
@@ -15,23 +14,6 @@ interface Props {
   settings: Settings
   onUpdate: (partial: Partial<Settings>) => void
 }
-
-const PipeConnector: FunctionComponent<{ color?: string; active?: boolean }> = ({ color, active }) => (
-  <Box
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      alignSelf: 'center',
-      color: active && color ? color : 'text.disabled',
-      opacity: active ? 0.85 : 0.2,
-      flexShrink: 0,
-      transition: 'all 0.3s ease',
-      mx: 0.15,
-    }}
-  >
-    <ArrowForwardIcon sx={{ fontSize: 20 }} />
-  </Box>
-)
 
 const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
   const isDelaySync = settings.delaySyncEnabled
@@ -71,8 +53,13 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
         </Typography>
       </Box>
 
-      {/* Cards row */}
-      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'stretch' }}>
+      {/* Cards grid */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+        gap: 1,
+        alignItems: 'stretch',
+      }}>
         {/* Speed */}
         <EffectCard
           color={EFFECT_COLORS.speed}
@@ -94,7 +81,6 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           onToggle={(checked) => onUpdate({ speedEnabled: checked })}
           onChange={(value) => onUpdate({ speed: value })}
         />
-        <PipeConnector color={EFFECT_COLORS.speed} active={settings.speedEnabled} />
 
         {/* Distortion */}
         <EffectCard
@@ -110,7 +96,6 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           onToggle={(checked) => onUpdate({ distortionEnabled: checked })}
           onChange={(value) => onUpdate({ distortionDrive: value })}
         />
-        <PipeConnector color={EFFECT_COLORS.distortion} active={settings.distortionEnabled} />
 
         {/* Phaser */}
         <EffectCard
@@ -159,7 +144,6 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
             onChangeDivision={(v) => onUpdate({ phaserNoteDivision: v })}
           />
         </EffectCard>
-        <PipeConnector color={EFFECT_COLORS.phaser} active={settings.phaserEnabled} />
 
         {/* Tremolo */}
         <EffectCard
@@ -208,7 +192,6 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
             onChangeDivision={(v) => onUpdate({ tremoloNoteDivision: v })}
           />
         </EffectCard>
-        <PipeConnector color={EFFECT_COLORS.tremolo} active={settings.tremoloEnabled} />
 
         {/* Reverb */}
         <EffectCard
@@ -237,8 +220,6 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
             onChangeDivision={(v) => onUpdate({ reverbNoteDivision: v })}
           />
         </EffectCard>
-        <PipeConnector color={EFFECT_COLORS.reverb} active={settings.reverbEnabled} />
-        <PipeConnector color={EFFECT_COLORS.reverb} active={settings.reverbEnabled} />
 
         {/* Delay */}
         <EffectCard
@@ -267,8 +248,6 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
             onChangeDivision={(v) => onUpdate({ delayNoteDivision: v })}
           />
         </EffectCard>
-        <PipeConnector color={EFFECT_COLORS.delay} active={settings.delayEnabled} />
-        <PipeConnector color={EFFECT_COLORS.delay} active={settings.delayEnabled} />
 
         {/* Chorus */}
         <EffectCard
@@ -317,7 +296,6 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
             onChangeDivision={(v) => onUpdate({ chorusNoteDivision: v })}
           />
         </EffectCard>
-        <PipeConnector color={EFFECT_COLORS.chorus} active={settings.chorusEnabled} />
 
         {/* BitCrusher */}
         <EffectCard
@@ -338,7 +316,6 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           onToggle={(checked) => onUpdate({ bitcrusherEnabled: checked })}
           onChange={(value) => onUpdate({ bitcrusherBits: value })}
         />
-        <PipeConnector color={EFFECT_COLORS.bitcrusher} active={settings.bitcrusherEnabled} />
 
         {/* Filter */}
         <EffectCard
@@ -361,7 +338,6 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           onToggle={(checked) => onUpdate({ filterEnabled: checked })}
           onChange={(value) => onUpdate({ filterCutoff: getValueFromScale(value) })}
         />
-        <PipeConnector color={EFFECT_COLORS.filter} active={settings.filterEnabled} />
 
         {/* AutoPan */}
         <EffectCard

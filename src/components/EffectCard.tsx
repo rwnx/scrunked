@@ -41,14 +41,14 @@ const EffectCard: FunctionComponent<CardDef> = ({
   <Card
     elevation={0}
     sx={{
-      minWidth: 110,
-      flex: '0 1 auto',
+      minWidth: 0,
+      width: '100%',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      py: 1.25,
-      px: 0.75,
-      opacity: enabled ? 1 : 0.5,
+      py: { xs: 1, sm: 1.25 },
+      px: { xs: 0.5, sm: 0.75 },
+      opacity: enabled ? 1 : 0.55,
       border: '1px solid',
       borderColor: enabled ? `${color}55` : 'divider',
       borderRadius: 2.5,
@@ -104,7 +104,7 @@ const EffectCard: FunctionComponent<CardDef> = ({
       step={sliderStep}
       marks={marks}
       sx={{
-        height: 110,
+        height: { xs: 90, sm: 110 },
         mb: 0.25,
         '& .MuiSlider-track': {
           border: 'none',

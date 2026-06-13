@@ -34,12 +34,12 @@ const TransportBar: FunctionComponent<Props> = ({
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: 2,
+        gap: { xs: 1, sm: 2 },
         mt: 1.5,
         mb: 1,
         bgcolor: 'action.hover',
         borderRadius: 3,
-        p: 1.5,
+        p: { xs: 1, sm: 1.5 },
         border: '1px solid',
         borderColor: 'divider',
       }}

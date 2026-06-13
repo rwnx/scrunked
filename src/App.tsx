@@ -266,14 +266,14 @@ const App: FunctionComponent = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box display="flex" justifyContent="center" alignItems="center" flexDirection="column" minHeight="100dvh" sx={{ overflow: 'auto', bgcolor: 'background.default', py: 2 }}>
-        <Card sx={{ maxWidth: 1400, width: '100%', mx: 2, p: 2.5, overflow: 'hidden' }}>
-          <Box display="flex" alignItems="center" gap={1.5} sx={{ mb: 1.5 }}>
+        <Card sx={{ maxWidth: 1400, width: '100%', mx: { xs: 1, sm: 2 }, p: { xs: 1.5, sm: 2.5 }, overflow: 'hidden' }}>
+          <Box display="flex" alignItems="center" flexWrap="wrap" gap={1} sx={{ mb: 1.5 }}>
             <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
               <PlayArrowIcon sx={{ fontSize: 20, color: '#fff' }} />
             </Box>
-            <Typography variant="h6" component="div" sx={{ fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: -0.3 }}>scrunked</Typography>
-            <Typography sx={{ fontSize: 12, mt: 0.25 }} color="text.secondary">a toolkit for ruining your favourite music</Typography>
-            <Box sx={{ flex: 1 }} />
+            <Typography variant="h6" component="div" sx={{ fontWeight: 800, fontSize: 17, lineHeight: 1, letterSpacing: -0.3, flexShrink: 0 }}>scrunked</Typography>
+            <Typography sx={{ fontSize: 12, mt: 0.25, minWidth: { xs: '100%', sm: 0 }, order: { xs: 1, sm: 0 } }} color="text.secondary">a toolkit for ruining your favourite music</Typography>
+            <Box sx={{ flex: 1, minWidth: 0 }} />
             <Tooltip title={settings.loop ? 'Loop' : 'Play Once'}>
               <Checkbox checked={settings.loop} icon={<ArrowRightAltIcon />} checkedIcon={<LoopIcon />} onChange={(e) => onUpdate({ loop: e.currentTarget.checked })} sx={{ '& .MuiSvgIcon-root': { fontSize: 22 } }} />
             </Tooltip>
@@ -281,7 +281,7 @@ const App: FunctionComponent = () => {
           <FileDropArea hasFile={hasFile} fileName={settings.file?.name} onFile={(file) => onUpdate({ nextFile: file })} />
           <TransportBar isPlaying={isPlaying} isExporting={isExporting} duration={settings.duration} hasFile={hasFile} waveformRef={waveformRef} onPlayPause={handlePlayPause} onExport={handleExport} />
           {hasFile && (
-            <Box display="flex" alignItems="center" sx={{ mt: 1, mb: 1.5, gap: 1.5 }}>
+            <Box display="flex" alignItems="center" flexWrap="wrap" sx={{ mt: 1, mb: 1.5, gap: { xs: 1, sm: 1.5 } }}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, fontSize: 12 }}>Tempo</Typography>
               <Box display="flex" alignItems="center" gap={0.5} sx={{ px: 1, py: 0.3, borderRadius: 1.5, bgcolor: 'action.hover' }}>
                 <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>{settings.bpm}</Typography>
