@@ -11,6 +11,7 @@ These are user-facing changes. To see the changes in the code between versions y
 - BPM auto-detection via autocorrelation when a new audio file is loaded — detected tempo is displayed and can be applied as the active BPM
 - Tempo section with manual BPM override (40–300 bpm range) and one-click Apply of detected BPM
 - Delay sync-to-BPM mode — toggle the Delay card's "Sync" button to switch between manual time and note divisions (1/8, 1/4, 1/2, 1/1), with the actual delay time computed from the active BPM
+- Visual connector arrows between effect cards show the signal flow pipeline
 
 ### Fixed
 
@@ -27,17 +28,6 @@ These are user-facing changes. To see the changes in the code between versions y
 - Outer container body overflow fixed with `overflow: hidden` on html/body and card
 - Card padding reduced from `p: 3` to `p: 2`; CardContent padding tightened
 - Removed unused imports: `ChevronRightIcon`, `LinkIcon`, `LinkOffIcon`, `IconButton`
-
-### Added
-
-- Visual connector arrows between effect cards show the signal flow pipeline
-
----
-
-## UI Polish
-
-### Changed
-
 - Custom MUI theme with refined dark/light mode backgrounds (`#0d1117`/`#f5f7fa`), rounded corners (12px), Inter font, and card style overrides
 - EffectCard redesigned: elevation when enabled, subtle background tint matching effect color, color-matched slider track/thumb, disabled labels with strikethrough, full border with color accent
 - Pipeline connectors (`PipeConnector` component) now color-coded to match the preceding effect, extracted as reusable component

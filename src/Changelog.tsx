@@ -4,9 +4,7 @@ import { parser } from "keep-a-changelog";
 import { DateTime } from "luxon";
 import changelogRaw from "../CHANGELOG.md?raw";
 
-/** Parsed at build-time from the inlined CHANGELOG.md content. */
 const parsed = parser(changelogRaw)
-
 const latestRelease = parsed.releases[1]
 if (!latestRelease) throw new Error("changelog missing release at index 1")
 if (!latestRelease.version || !latestRelease.date) throw new Error("changelog missing required fields")
