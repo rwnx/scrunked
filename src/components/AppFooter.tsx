@@ -4,8 +4,6 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Link from '@mui/material/Link';
 import GitHubIcon from '@mui/icons-material/GitHub';
-import { SvgIcon } from '@mui/material';
-import { ChromeIcon } from '../icons';
 import Changelog from '../Changelog';
 
 const AppFooter: FunctionComponent = () => (
@@ -24,9 +22,7 @@ const AppFooter: FunctionComponent = () => (
     <Typography sx={{ fontSize: 12 }} color="text.secondary">
       Inspired by <Link href="https://github.com/dumbmatter/screw" sx={{ fontSize: 12 }}>Screw</Link> 🔩
     </Typography>
-    <Typography sx={{ fontSize: 12, display: 'flex', gap: 0.5, alignItems: 'center' }} color="text.secondary">
-      Best in <SvgIcon fontSize="small">{ChromeIcon}</SvgIcon> Chrome
-    </Typography>
+
     <Changelog />
     <Button
       href="https://github.com/rwnx/scrunked"

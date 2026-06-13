@@ -17,6 +17,10 @@ These are user-facing changes. To see the changes in the code between versions y
 - AutoPan sync-to-BPM: pan rate snaps to note divisions
 - Sync settings persisted across sessions via localStorage (Zod-validated)
 
+### Removed
+
+- "Best in Chrome" footer line and associated ChromeIcon import
+
 ### Changed
 
 - Delay card refactored to use unified `SnapControl` widget instead of manual Sync button + select
