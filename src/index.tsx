@@ -525,12 +525,13 @@ const App: FunctionComponent = () => {
       // Update effect parameters
       distortion.set({ distortion: settings.distortionDrive })
       reverb.set({ decay: settings.reverbDecay })
+      const playbackRate = settings.speedEnabled ? settings.speed : 1
       const delayTime = settings.delaySyncEnabled
-        ? noteToSeconds(settings.delayNoteDivision, settings.bpm)
+        ? noteToSeconds(settings.delayNoteDivision, settings.bpm) / playbackRate
         : settings.delayTime
       delay.set({ delayTime, feedback: settings.delayFeedback, wet: settings.delayWet })
       const chorusRate = settings.chorusSyncEnabled
-        ? 1 / noteToSeconds(settings.chorusNoteDivision, settings.bpm)
+        ? (1 / noteToSeconds(settings.chorusNoteDivision, settings.bpm)) * playbackRate
         : settings.chorusRate
       chorus.set({ frequency: chorusRate, depth: settings.chorusDepth })
       bitcrusher.set({ bits: settings.bitcrusherBits })
@@ -590,13 +591,14 @@ const App: FunctionComponent = () => {
         const distortion = new Tone.Distortion(settings.distortionDrive)
         const reverb = new Tone.Reverb({ decay: settings.reverbDecay })
         await reverb.ready
+        const playbackRate = settings.speedEnabled ? settings.speed : 1
         const delayTime = settings.delaySyncEnabled
-          ? noteToSeconds(settings.delayNoteDivision, settings.bpm)
+          ? noteToSeconds(settings.delayNoteDivision, settings.bpm) / playbackRate
           : settings.delayTime
         const delay = new Tone.PingPongDelay(delayTime, settings.delayFeedback)
         delay.set({ wet: settings.delayWet })
         const chorusRate = settings.chorusSyncEnabled
-          ? 1 / noteToSeconds(settings.chorusNoteDivision, settings.bpm)
+          ? (1 / noteToSeconds(settings.chorusNoteDivision, settings.bpm)) * playbackRate
           : settings.chorusRate
         const chorus = new Tone.Chorus(chorusRate, 3.5, settings.chorusDepth)
         const bitcrusher = new Tone.BitCrusher(settings.bitcrusherBits)
@@ -927,19 +929,25 @@ const App: FunctionComponent = () => {
                   <>
                     <Slider
                       orientation="vertical"
-                      value={settings.delayTime}
-                      max={1}
-                      min={0.01}
-                      step={0.01}
+                      value={getScaleValue(settings.delayTime)}
+                      max={getScaleValue(1)}
+                      min={getScaleValue(0.01)}
+                      step={0.001}
+                      marks={[
+                        { value: getScaleValue(0.05), label: "50ms" },
+                        { value: getScaleValue(0.25), label: "250ms" },
+                        { value: getScaleValue(0.5), label: "500ms" },
+                        { value: getScaleValue(1), label: "1s" },
+                      ]}
                       sx={{ height: 120, mb: 0.25 }}
                       disabled={!settings.delayEnabled}
                       onChange={(_, value) => {
                         if (Array.isArray(value)) throw new Error('single value required')
-                        set(mergeSettings({ delayTime: value as number }))
+                        set(mergeSettings({ delayTime: getValueFromScale(value as number) }))
                       }}
                     />
                     <Typography variant="caption" sx={{ fontSize: 11 }}>
-                      {settings.delayTime.toFixed(2)}s
+                      {settings.delayTime.toFixed(3)}s
                     </Typography>
                   </>
                 )}
@@ -1028,19 +1036,25 @@ const App: FunctionComponent = () => {
                   <>
                     <Slider
                       orientation="vertical"
-                      value={settings.chorusRate}
-                      max={10}
-                      min={0.1}
-                      step={0.1}
+                      value={getScaleValue(settings.chorusRate)}
+                      max={getScaleValue(10)}
+                      min={getScaleValue(0.1)}
+                      step={0.001}
+                      marks={[
+                        { value: getScaleValue(0.5), label: "0.5" },
+                        { value: getScaleValue(1), label: "1" },
+                        { value: getScaleValue(4), label: "4" },
+                        { value: getScaleValue(10), label: "10Hz" },
+                      ]}
                       sx={{ height: 120, mb: 0.25 }}
                       disabled={!settings.chorusEnabled}
                       onChange={(_, value) => {
                         if (Array.isArray(value)) throw new Error('single value required')
-                        set(mergeSettings({ chorusRate: value as number }))
+                        set(mergeSettings({ chorusRate: getValueFromScale(value as number) }))
                       }}
                     />
                     <Typography variant="caption" sx={{ fontSize: 11 }}>
-                      {settings.chorusRate.toFixed(1)}hz
+                      {settings.chorusRate.toFixed(2)}hz
                     </Typography>
                   </>
                 )}

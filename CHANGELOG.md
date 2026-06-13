@@ -18,6 +18,8 @@ These are user-facing changes. To see the changes in the code between versions y
 - BPM detection now auto-applies when a new song loads — detected tempo is set as the active BPM immediately, with a green "✓ detected" badge shown for confirmation
 - Delay sync mode uses slider with snap-to marks (1/8, 1/4, 1/2, 1/1) instead of separate toggle buttons — consistent with all other effect card controls
 - Added Chorus sync-to-BPM: when sync is toggled on the Chorus card, the modulation rate snaps to note divisions (1/8, 1/4, 1/2, 1/1)
+- BPM-synced delay/chorus values now account for playback speed — at 0.5x speed, delay time doubles and chorus rate halves (compensating for the audio being slower)
+- Delay and chorus manual sliders use logarithmic scaling — small values get more slider space for fine control, with marks at musically-useful points
 
 ### Fixed
 
