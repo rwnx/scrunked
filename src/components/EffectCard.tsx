@@ -5,6 +5,9 @@ import Checkbox from '@mui/material/Checkbox';
 import Slider from '@mui/material/Slider';
 import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import CloseIcon from '@mui/icons-material/Close';
 
 export type CardDef = {
   color: string
@@ -20,7 +23,17 @@ export type CardDef = {
   displayValue?: string
   onToggle: (checked: boolean) => void
   onChange?: (value: number) => void
+  onRemove?: () => void
   children?: preact.ComponentChildren
+  /** HTML drag event handlers */
+  dragHandlers?: {
+    onDragStart: (e: preact.JSX.TargetedDragEvent<HTMLDivElement>) => void
+    onDragOver: (e: preact.JSX.TargetedDragEvent<HTMLDivElement>) => void
+    onDragEnd: (e: preact.JSX.TargetedDragEvent<HTMLDivElement>) => void
+    onDrop: (e: preact.JSX.TargetedDragEvent<HTMLDivElement>) => void
+  }
+  /** True when this card is being dragged over */
+  isDragOver?: boolean
 }
 
 const EffectCard: FunctionComponent<CardDef> = ({
@@ -36,10 +49,18 @@ const EffectCard: FunctionComponent<CardDef> = ({
   displayValue,
   onToggle,
   onChange,
+  onRemove,
   children,
+  dragHandlers,
+  isDragOver,
 }) => (
   <Card
     elevation={0}
+    draggable={!!dragHandlers}
+    onDragStart={dragHandlers?.onDragStart}
+    onDragOver={dragHandlers?.onDragOver}
+    onDragEnd={dragHandlers?.onDragEnd}
+    onDrop={dragHandlers?.onDrop}
     sx={{
       minWidth: 0,
       width: '100%',
@@ -48,9 +69,9 @@ const EffectCard: FunctionComponent<CardDef> = ({
       alignItems: 'center',
       py: { xs: 1, sm: 1.25 },
       px: { xs: 0.5, sm: 0.75 },
-      opacity: enabled ? 1 : 0.55,
-      border: '1px solid',
-      borderColor: enabled ? `${color}55` : 'divider',
+      opacity: enabled ? (isDragOver ? 0.7 : 1) : 0.55,
+      border: isDragOver ? '2px dashed' : '1px solid',
+      borderColor: isDragOver ? color : enabled ? `${color}55` : 'divider',
       borderRadius: 2.5,
       position: 'relative',
       bgcolor: enabled ? `${color}0a` : 'background.paper',
@@ -64,9 +85,55 @@ const EffectCard: FunctionComponent<CardDef> = ({
       '& .MuiSlider-thumb': {
         display: enabled ? 'block' : 'none',
       },
+      '&:hover .remove-btn': {
+        opacity: 1,
+      },
+      cursor: dragHandlers ? 'grab' : undefined,
+      '&:active': dragHandlers ? { cursor: 'grabbing' } : undefined,
     }}
   >
-    <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
+    {/* Remove button */}
+    {onRemove && (
+      <IconButton
+        className="remove-btn"
+        size="small"
+        onClick={onRemove}
+        sx={{
+          position: 'absolute',
+          top: -6,
+          right: -6,
+          opacity: 0,
+          transition: 'opacity 0.2s',
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+          width: 22,
+          height: 22,
+          '&:hover': { bgcolor: 'action.hover' },
+          zIndex: 2,
+        }}
+      >
+        <CloseIcon sx={{ fontSize: 12 }} />
+      </IconButton>
+    )}
+
+    {/* Drag handle */}
+    {dragHandlers && (
+      <DragIndicatorIcon
+        sx={{
+          position: 'absolute',
+          top: 2,
+          left: 2,
+          fontSize: 14,
+          color: 'text.disabled',
+          cursor: 'grab',
+          opacity: 0.5,
+          '&:hover': { opacity: 1 },
+        }}
+      />
+    )}
+
+    <Box display="flex" alignItems="center" flexDirection="column" mb={0.5} mt={dragHandlers ? 0.5 : 0}>
       <Tooltip title={tooltip} placement="top" arrow>
         <Checkbox
           checked={enabled}

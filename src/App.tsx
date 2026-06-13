@@ -24,7 +24,7 @@ import AppFooter from './components/AppFooter';
 import {
   Settings, STORAGE_KEY, persistedSettingsSchema,
   FILTER_MAX, detectBpm, audioBufferToWavBlob, downloadBlob,
-  noteToSeconds, noteToFrequency,
+  noteToSeconds, noteToFrequency, DEFAULT_EFFECT_ORDER,
 } from './types';
 
 const mergeSettings = (next: Partial<Settings>) => (state: Settings) => ({ ...state, ...next })
@@ -62,6 +62,7 @@ const App: FunctionComponent = () => {
   }), [prefersDarkMode])
 
   const [settings, set] = useState<Settings>({
+    effectOrder: [...DEFAULT_EFFECT_ORDER],
     speedEnabled: true, speed: 1, filterEnabled: true, filterCutoff: FILTER_MAX,
     loop: true, file: undefined, duration: undefined, nextFile: undefined, state: 'init',
     distortionEnabled: false, distortionDrive: 0.5,
@@ -114,18 +115,23 @@ const App: FunctionComponent = () => {
       try { n.disconnect() } catch {}
     }
     let last: Tone.ToneAudioNode = player
-    if (settings.distortionEnabled) { last.connect(distortion); last = distortion }
-    if (settings.phaserEnabled) { last.connect(phaser); last = phaser }
-    if (settings.tremoloEnabled) { last.connect(tremolo); try { (tremolo as any).start() } catch {}; last = tremolo }
-    if (settings.reverbEnabled) { last.connect(reverb); last = reverb }
-    if (settings.delayEnabled) { last.connect(delay); last = delay }
-    if (settings.chorusEnabled) { last.connect(chorus); try { (chorus as any).start() } catch {}; last = chorus }
-    if (settings.bitcrusherEnabled) { last.connect(bitcrusher); last = bitcrusher }
-    if (settings.filterEnabled) { last.connect(filterNode); last = filterNode }
-    if (settings.autoPanEnabled) { last.connect(autoPan); try { (autoPan as any).start() } catch {}; last = autoPan }
+    for (const effectType of settings.effectOrder) {
+      switch (effectType) {
+        case 'speed': break // speed is handled via player.playbackRate
+        case 'distortion': if (settings.distortionEnabled) { last.connect(distortion); last = distortion }; break
+        case 'phaser': if (settings.phaserEnabled) { last.connect(phaser); last = phaser }; break
+        case 'tremolo': if (settings.tremoloEnabled) { last.connect(tremolo); try { (tremolo as any).start() } catch {}; last = tremolo }; break
+        case 'reverb': if (settings.reverbEnabled) { last.connect(reverb); last = reverb }; break
+        case 'delay': if (settings.delayEnabled) { last.connect(delay); last = delay }; break
+        case 'chorus': if (settings.chorusEnabled) { last.connect(chorus); try { (chorus as any).start() } catch {}; last = chorus }; break
+        case 'bitcrusher': if (settings.bitcrusherEnabled) { last.connect(bitcrusher); last = bitcrusher }; break
+        case 'filter': if (settings.filterEnabled) { last.connect(filterNode); last = filterNode }; break
+        case 'autoPan': if (settings.autoPanEnabled) { last.connect(autoPan); try { (autoPan as any).start() } catch {}; last = autoPan }; break
+      }
+    }
     last.connect(comp)
     comp.connect(Tone.Destination)
-  }, [settings.distortionEnabled, settings.phaserEnabled, settings.tremoloEnabled, settings.reverbEnabled, settings.delayEnabled, settings.chorusEnabled, settings.bitcrusherEnabled, settings.filterEnabled, settings.autoPanEnabled, player, distortion, phaser, tremolo, reverb, delay, chorus, bitcrusher, filterNode, comp, autoPan])
+  }, [settings.effectOrder, settings.distortionEnabled, settings.phaserEnabled, settings.tremoloEnabled, settings.reverbEnabled, settings.delayEnabled, settings.chorusEnabled, settings.bitcrusherEnabled, settings.filterEnabled, settings.autoPanEnabled, player, distortion, phaser, tremolo, reverb, delay, chorus, bitcrusher, filterNode, comp, autoPan])
 
   useEffect(() => {
     if (!waveformRef.current) return

@@ -20,7 +20,15 @@ export type SnapSettings = {
   noteDivision: NoteDivision;
 }
 
+export const DEFAULT_EFFECT_ORDER = [
+  'speed', 'distortion', 'phaser', 'tremolo', 'reverb',
+  'delay', 'chorus', 'bitcrusher', 'filter', 'autoPan',
+] as const
+
+export type EffectType = (typeof DEFAULT_EFFECT_ORDER)[number]
+
 export type Settings = {
+  effectOrder: EffectType[];
   speedEnabled: boolean;
   speed: number;
   filterEnabled: boolean;
@@ -99,6 +107,7 @@ export const EFFECT_TOOLTIPS: Record<string, string> = {
 }
 
 export const persistedSettingsSchema = z.object({
+  effectOrder: z.array(z.string()).optional(),
   filterCutoff: z.number(),
   speed: z.number(),
   loop: z.boolean(),
