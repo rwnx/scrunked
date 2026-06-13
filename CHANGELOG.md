@@ -7,23 +7,25 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ### Added
 
-- Three new effects: Tremolo (rhythmic volume modulation with rate + depth), Phaser (sweeping notch filter with rate + depth), and AutoPan (automatic stereo panning with rate + depth) — 10 effects total in the chain
-- Completely redesigned UI: modern glassmorphism-style effect cards with backdrop blur, drag-and-drop file upload area, improved waveform transport bar, compact header with loop toggle, and responsive layout
-- Live active-chain display showing which effects are enabled in pipeline order (e.g. "Speed → Dist → Phase → Verb → Delay → LPF → Pan")
-- Secondary sliders on multi-parameter effects (Phaser/Tremolo/Chorus/AutoPan depth controls) integrated directly into each card
-- BPM auto-detection via autocorrelation when a new audio file is loaded — detected tempo is displayed and can be applied as the active BPM
-- Tempo section with manual BPM override (40–300 bpm range) and one-click Apply of detected BPM
-- Delay sync-to-BPM mode — toggle the Delay card's "Sync" button to switch between manual time and note divisions (1/8, 1/4, 1/2, 1/1), with the actual delay time computed from the active BPM
-- Visual connector arrows between effect cards show the signal flow pipeline
-- Settings persistence via localStorage (Zod-validated) across sessions
+- Snapping/sync control (`SnapControl`) — reusable BPM sync widget with Snap toggle and note division selector, embedded into all time-based effect cards (Delay, Reverb, Phaser, Tremolo, Chorus, AutoPan)
+- Expanded note divisions — includes small increments down to 1/64 note, plus dotted and triplet variants (1/8., 1/4., 1/2., 1/1., 1/8t, 1/4t, 1/2t, 1/1t) for fine-grained tempo sync
+- `noteToFrequency()` utility converts note divisions to LFO frequency (Hz) for sync on rate-based effects (Phaser, Tremolo, Chorus, AutoPan)
+- Reverb sync-to-BPM: decay time can be snapped to note divisions
+- Phaser sync-to-BPM: modulation rate snaps to note divisions
+- Tremolo sync-to-BPM: modulation rate snaps to note divisions
+- Chorus sync-to-BPM: modulation rate snaps to note divisions
+- AutoPan sync-to-BPM: pan rate snaps to note divisions
+- Sync settings persisted across sessions via localStorage (Zod-validated)
 
 ### Changed
 
-- BPM detection now auto-applies when a new song loads — detected tempo is set as the active BPM immediately, with a green "✓ detected" badge shown for confirmation
-- Delay sync mode uses slider with snap-to marks (1/8, 1/4, 1/2, 1/1) instead of separate toggle buttons — consistent with all other effect card controls
-- Added Chorus sync-to-BPM: when sync is toggled on the Chorus card, the modulation rate snaps to note divisions (1/8, 1/4, 1/2, 1/1)
-- BPM-synced delay/chorus values now account for playback speed — at 0.5x speed, delay time doubles and chorus rate halves (compensating for the audio being slower)
-- Delay and chorus manual sliders use logarithmic scaling — small values get more slider space for fine control, with marks at musically-useful points
+- Delay card refactored to use unified `SnapControl` widget instead of manual Sync button + select
+- Reduced slider width on snap-enabled cards to `0.5` midpoint when sync is active (consistent visual cue across all effects)
+- Note division select dropdown width increased from 36px to 46px to accommodate longer labels (e.g. 1/64, 1/8t)
+
+### Fixed
+
+- Delay note division select matches expanded list with all new division options
 - Complete codebase restructuring: monolith index.tsx split into modular components (App.tsx, EffectCard.tsx, EffectsChain.tsx, TransportBar.tsx, FileDropArea.tsx, AppFooter.tsx) with centralized types in types.ts
 - Signal flow reordered: Player → Speed → [Distortion] → [Phaser] → [Tremolo] → [Reverb] → [Delay] → [Chorus] → [BitCrusher] → [Filter] → [AutoPan] → Compressor → Destination
 - Reduced waveform height from 100px to 80px for a more compact layout

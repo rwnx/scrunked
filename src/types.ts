@@ -1,14 +1,24 @@
 import { z } from 'zod';
 import {
   getScaleValue, getValueFromScale, humanFormat,
-  noteToSeconds, detectBpm, audioBufferToWavBlob, downloadBlob
+  noteToSeconds, noteToFrequency, formatNoteDivision,
+  detectBpm, audioBufferToWavBlob, downloadBlob
 } from './lib';
 
 export type NoteDivision = (typeof NOTE_DIVISIONS)[number]
 
-export const NOTE_DIVISIONS = ['1/8', '1/4', '1/2', '1/1'] as const
+export const NOTE_DIVISIONS = [
+  '1/64', '1/32', '1/16', '1/8', '1/4', '1/2', '1/1',
+  '1/8.', '1/4.', '1/2.', '1/1.',
+  '1/8t', '1/4t', '1/2t', '1/1t',
+] as const
 export const FILTER_MAX = 22_000
 export const STORAGE_KEY = "scrunked:settings"
+
+export type SnapSettings = {
+  syncEnabled: boolean;
+  noteDivision: NoteDivision;
+}
 
 export type Settings = {
   speedEnabled: boolean;
@@ -47,6 +57,16 @@ export type Settings = {
   bpmDetected: number | null;
   delaySyncEnabled: boolean;
   delayNoteDivision: NoteDivision;
+  phaserSyncEnabled: boolean;
+  phaserNoteDivision: NoteDivision;
+  tremoloSyncEnabled: boolean;
+  tremoloNoteDivision: NoteDivision;
+  chorusSyncEnabled: boolean;
+  chorusNoteDivision: NoteDivision;
+  reverbSyncEnabled: boolean;
+  reverbNoteDivision: NoteDivision;
+  autoPanSyncEnabled: boolean;
+  autoPanNoteDivision: NoteDivision;
 }
 
 export const EFFECT_COLORS = {
@@ -102,6 +122,16 @@ export const persistedSettingsSchema = z.object({
   autoPanEnabled: z.boolean(),
   autoPanRate: z.number(),
   autoPanDepth: z.number(),
+  phaserSyncEnabled: z.boolean(),
+  phaserNoteDivision: z.string(),
+  tremoloSyncEnabled: z.boolean(),
+  tremoloNoteDivision: z.string(),
+  chorusSyncEnabled: z.boolean(),
+  chorusNoteDivision: z.string(),
+  reverbSyncEnabled: z.boolean(),
+  reverbNoteDivision: z.string(),
+  autoPanSyncEnabled: z.boolean(),
+  autoPanNoteDivision: z.string(),
 })
 
 export const filterCutoffMarks = [
@@ -117,5 +147,6 @@ export const filterCutoffMarks = [
 
 export {
   getScaleValue, getValueFromScale, humanFormat,
-  noteToSeconds, detectBpm, audioBufferToWavBlob, downloadBlob
+  noteToSeconds, noteToFrequency, formatNoteDivision,
+  detectBpm, audioBufferToWavBlob, downloadBlob
 }

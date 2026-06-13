@@ -7,18 +7,51 @@ export const humanFormat = (value: number) => {
 }
 
 /** Note divisions supported for BPM sync */
-export const NOTE_DIVISIONS = ['1/8', '1/4', '1/2', '1/1'] as const
+export const NOTE_DIVISIONS = [
+  '1/64', '1/32', '1/16', '1/8', '1/4', '1/2', '1/1',
+  '1/8.', '1/4.', '1/2.', '1/1.',
+  '1/8t', '1/4t', '1/2t', '1/1t',
+] as const
 export type NoteDivision = (typeof NOTE_DIVISIONS)[number]
 
-/** Convert a note division to seconds at the given BPM. */
+/** Convert a note division to seconds at the given BPM.
+ *
+ * Supports:
+ *   plain divisions: 1/64, 1/32, 1/16, 1/8, 1/4, 1/2, 1/1
+ *   dotted (.):      adds 50 % duration
+ *   triplets (t):    divides by 3
+ */
 export function noteToSeconds(note: NoteDivision, bpm: number): number {
   const quarterNote = 60 / bpm
-  switch (note) {
-    case '1/8': return quarterNote / 2
-    case '1/4': return quarterNote
-    case '1/2': return quarterNote * 2
-    case '1/1': return quarterNote * 4
+  let base: number
+  const isDotted = note.endsWith('.')
+  const isTriplet = note.endsWith('t')
+  const raw = note.replace(/[.t]$/, '')
+  switch (raw) {
+    case '1/64': base = quarterNote / 16; break
+    case '1/32': base = quarterNote / 8; break
+    case '1/16': base = quarterNote / 4; break
+    case '1/8':  base = quarterNote / 2; break
+    case '1/4':  base = quarterNote; break
+    case '1/2':  base = quarterNote * 2; break
+    case '1/1':  base = quarterNote * 4; break
+    default:     base = quarterNote
   }
+  if (isTriplet) base *= 2 / 3
+  if (isDotted) base *= 1.5
+  return base
+}
+
+/** Convert a note division to a frequency (Hz) at the given BPM.
+ *  Useful for LFO-driven effects (phaser, tremolo, chorus, autoPan). */
+export function noteToFrequency(note: NoteDivision, bpm: number): number {
+  const secs = noteToSeconds(note, bpm)
+  return secs > 0 ? 1 / secs : 0
+}
+
+/** Human-readable label for a note division. */
+export function formatNoteDivision(note: NoteDivision): string {
+  return note
 }
 
 /**

@@ -24,7 +24,7 @@ import AppFooter from './components/AppFooter';
 import {
   Settings, STORAGE_KEY, persistedSettingsSchema,
   FILTER_MAX, detectBpm, audioBufferToWavBlob, downloadBlob,
-  noteToSeconds,
+  noteToSeconds, noteToFrequency,
 } from './types';
 
 const mergeSettings = (next: Partial<Settings>) => (state: Settings) => ({ ...state, ...next })
@@ -72,7 +72,13 @@ const App: FunctionComponent = () => {
     tremoloEnabled: false, tremoloRate: 5, tremoloDepth: 0.5,
     phaserEnabled: false, phaserRate: 0.5, phaserDepth: 0.5, phaserFeedback: 0.3,
     autoPanEnabled: false, autoPanRate: 0.5, autoPanDepth: 0.5,
-    bpm: 120, bpmDetected: null, delaySyncEnabled: false, delayNoteDivision: '1/4',
+    bpm: 120, bpmDetected: null,
+    delaySyncEnabled: false, delayNoteDivision: '1/4',
+    phaserSyncEnabled: false, phaserNoteDivision: '1/4',
+    tremoloSyncEnabled: false, tremoloNoteDivision: '1/4',
+    chorusSyncEnabled: false, chorusNoteDivision: '1/4',
+    reverbSyncEnabled: false, reverbNoteDivision: '1/4',
+    autoPanSyncEnabled: false, autoPanNoteDivision: '1/4',
     ...loadPersistedSettings(),
   })
   const onUpdate = useCallback((partial: Partial<Settings>) => { set(mergeSettings(partial)) }, [])
@@ -178,14 +184,14 @@ const App: FunctionComponent = () => {
       }
       rebuildChain()
       distortion.set({ distortion: settings.distortionDrive })
-      reverb.set({ decay: settings.reverbDecay })
+      reverb.set({ decay: settings.reverbSyncEnabled ? noteToSeconds(settings.reverbNoteDivision, settings.bpm) : settings.reverbDecay })
       const dt = settings.delaySyncEnabled ? noteToSeconds(settings.delayNoteDivision, settings.bpm) : settings.delayTime
       delay.set({ delayTime: dt, feedback: settings.delayFeedback, wet: settings.delayWet })
-      chorus.set({ frequency: settings.chorusRate, depth: settings.chorusDepth })
+      chorus.set({ frequency: settings.chorusSyncEnabled ? noteToFrequency(settings.chorusNoteDivision, settings.bpm) : settings.chorusRate, depth: settings.chorusDepth })
       bitcrusher.set({ bits: settings.bitcrusherBits })
-      tremolo.set({ frequency: settings.tremoloRate, depth: settings.tremoloDepth })
-      phaser.set({ frequency: settings.phaserRate })
-      autoPan.set({ frequency: settings.autoPanRate, depth: settings.autoPanDepth })
+      tremolo.set({ frequency: settings.tremoloSyncEnabled ? noteToFrequency(settings.tremoloNoteDivision, settings.bpm) : settings.tremoloRate, depth: settings.tremoloDepth })
+      phaser.set({ frequency: settings.phaserSyncEnabled ? noteToFrequency(settings.phaserNoteDivision, settings.bpm) : settings.phaserRate })
+      autoPan.set({ frequency: settings.autoPanSyncEnabled ? noteToFrequency(settings.autoPanNoteDivision, settings.bpm) : settings.autoPanRate, depth: settings.autoPanDepth })
       player.set({ playbackRate: settings.speedEnabled ? settings.speed : 1, loop: settings.loop })
       filterNode.set({ frequency: settings.filterCutoff })
     }
@@ -222,16 +228,17 @@ const App: FunctionComponent = () => {
         const f = new Tone.Filter(settings.filterCutoff, 'lowpass', -48)
         const c = new Tone.Compressor(-24, 12)
         const d = new Tone.Distortion(settings.distortionDrive)
-        const r = new Tone.Reverb({ decay: settings.reverbDecay })
+        const r = new Tone.Reverb({ decay: settings.reverbSyncEnabled ? noteToSeconds(settings.reverbNoteDivision, settings.bpm) : settings.reverbDecay })
         await r.ready
         const dt = settings.delaySyncEnabled ? noteToSeconds(settings.delayNoteDivision, settings.bpm) : settings.delayTime
         const dl = new Tone.PingPongDelay(dt, settings.delayFeedback)
         dl.set({ wet: settings.delayWet })
-        const ch = new Tone.Chorus(settings.chorusRate, 3.5, settings.chorusDepth)
+        const cr = settings.chorusSyncEnabled ? noteToFrequency(settings.chorusNoteDivision, settings.bpm) : settings.chorusRate
+        const ch = new Tone.Chorus(cr, 3.5, settings.chorusDepth)
         const bc = new Tone.BitCrusher(settings.bitcrusherBits)
-        const tr = new Tone.Tremolo(settings.tremoloRate, settings.tremoloDepth)
-        const ph = new Tone.Phaser({ frequency: settings.phaserRate, octaves: 5, baseFrequency: 500 })
-        const ap = new Tone.AutoPanner(settings.autoPanRate)
+        const tr = new Tone.Tremolo(settings.tremoloSyncEnabled ? noteToFrequency(settings.tremoloNoteDivision, settings.bpm) : settings.tremoloRate, settings.tremoloDepth)
+        const ph = new Tone.Phaser({ frequency: settings.phaserSyncEnabled ? noteToFrequency(settings.phaserNoteDivision, settings.bpm) : settings.phaserRate, octaves: 5, baseFrequency: 500 })
+        const ap = new Tone.AutoPanner(settings.autoPanSyncEnabled ? noteToFrequency(settings.autoPanNoteDivision, settings.bpm) : settings.autoPanRate)
         ap.set({ depth: settings.autoPanDepth })
         let last: Tone.ToneAudioNode = p
         if (settings.distortionEnabled) { last.connect(d); last = d }

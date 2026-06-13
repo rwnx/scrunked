@@ -2,14 +2,13 @@ import { FunctionComponent } from 'preact';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Slider from '@mui/material/Slider';
-import Button from '@mui/material/Button';
-import Tooltip from '@mui/material/Tooltip';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import EffectCard from './EffectCard';
+import SnapControl from './SnapControl';
 import {
-  EFFECT_COLORS, EFFECT_TOOLTIPS, NOTE_DIVISIONS,
+  EFFECT_COLORS, EFFECT_TOOLTIPS,
   filterCutoffMarks, getScaleValue, getValueFromScale,
-  humanFormat, noteToSeconds, Settings, NoteDivision
+  humanFormat, noteToSeconds, noteToFrequency, Settings,
 } from '../types';
 
 interface Props {
@@ -119,11 +118,14 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           label="Phaser"
           tooltip={EFFECT_TOOLTIPS.phaser}
           enabled={settings.phaserEnabled}
-          sliderValue={settings.phaserRate}
+          sliderValue={settings.phaserSyncEnabled ? 0.5 : settings.phaserRate}
           sliderMin={0.1}
           sliderMax={20}
           sliderStep={0.1}
-          displayValue={`${settings.phaserRate.toFixed(1)}hz`}
+          displayValue={settings.phaserSyncEnabled
+            ? `${noteToFrequency(settings.phaserNoteDivision, settings.bpm).toFixed(2)}hz`
+            : `${settings.phaserRate.toFixed(1)}hz`
+          }
           onToggle={(checked) => onUpdate({ phaserEnabled: checked })}
           onChange={(value) => onUpdate({ phaserRate: value })}
         >
@@ -146,6 +148,16 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled', mt: -0.25 }}>
             {settings.phaserDepth.toFixed(2)}
           </Typography>
+          <SnapControl
+            enabled={settings.phaserEnabled}
+            syncEnabled={settings.phaserSyncEnabled}
+            noteDivision={settings.phaserNoteDivision}
+            color={EFFECT_COLORS.phaser}
+            showFrequency
+            bpm={settings.bpm}
+            onToggleSync={(v) => onUpdate({ phaserSyncEnabled: v })}
+            onChangeDivision={(v) => onUpdate({ phaserNoteDivision: v })}
+          />
         </EffectCard>
         <PipeConnector color={EFFECT_COLORS.phaser} active={settings.phaserEnabled} />
 
@@ -155,11 +167,14 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           label="Tremolo"
           tooltip={EFFECT_TOOLTIPS.tremolo}
           enabled={settings.tremoloEnabled}
-          sliderValue={settings.tremoloRate}
+          sliderValue={settings.tremoloSyncEnabled ? 0.5 : settings.tremoloRate}
           sliderMin={0.1}
           sliderMax={20}
           sliderStep={0.1}
-          displayValue={`${settings.tremoloRate.toFixed(1)}hz`}
+          displayValue={settings.tremoloSyncEnabled
+            ? `${noteToFrequency(settings.tremoloNoteDivision, settings.bpm).toFixed(2)}hz`
+            : `${settings.tremoloRate.toFixed(1)}hz`
+          }
           onToggle={(checked) => onUpdate({ tremoloEnabled: checked })}
           onChange={(value) => onUpdate({ tremoloRate: value })}
         >
@@ -182,6 +197,16 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled', mt: -0.25 }}>
             {settings.tremoloDepth.toFixed(2)}
           </Typography>
+          <SnapControl
+            enabled={settings.tremoloEnabled}
+            syncEnabled={settings.tremoloSyncEnabled}
+            noteDivision={settings.tremoloNoteDivision}
+            color={EFFECT_COLORS.tremolo}
+            showFrequency
+            bpm={settings.bpm}
+            onToggleSync={(v) => onUpdate({ tremoloSyncEnabled: v })}
+            onChangeDivision={(v) => onUpdate({ tremoloNoteDivision: v })}
+          />
         </EffectCard>
         <PipeConnector color={EFFECT_COLORS.tremolo} active={settings.tremoloEnabled} />
 
@@ -191,14 +216,27 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           label="Reverb"
           tooltip={EFFECT_TOOLTIPS.reverb}
           enabled={settings.reverbEnabled}
-          sliderValue={settings.reverbDecay}
+          sliderValue={settings.reverbSyncEnabled ? 0.5 : settings.reverbDecay}
           sliderMin={0.1}
           sliderMax={10}
           sliderStep={0.1}
-          displayValue={`${settings.reverbDecay.toFixed(1)}s`}
+          displayValue={settings.reverbSyncEnabled
+            ? `${noteToSeconds(settings.reverbNoteDivision, settings.bpm).toFixed(2)}s`
+            : `${settings.reverbDecay.toFixed(1)}s`
+          }
           onToggle={(checked) => onUpdate({ reverbEnabled: checked })}
           onChange={(value) => onUpdate({ reverbDecay: value })}
-        />
+        >
+          <SnapControl
+            enabled={settings.reverbEnabled}
+            syncEnabled={settings.reverbSyncEnabled}
+            noteDivision={settings.reverbNoteDivision}
+            color={EFFECT_COLORS.reverb}
+            bpm={settings.bpm}
+            onToggleSync={(v) => onUpdate({ reverbSyncEnabled: v })}
+            onChangeDivision={(v) => onUpdate({ reverbNoteDivision: v })}
+          />
+        </EffectCard>
         <PipeConnector color={EFFECT_COLORS.reverb} active={settings.reverbEnabled} />
         <PipeConnector color={EFFECT_COLORS.reverb} active={settings.reverbEnabled} />
 
@@ -219,41 +257,15 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           onToggle={(checked) => onUpdate({ delayEnabled: checked })}
           onChange={(value) => onUpdate({ delayTime: value as number })}
         >
-          <Box display="flex" gap={0.3} alignItems="center">
-            <Tooltip title="Sync delay to BPM">
-              <Button
-                size="small"
-                variant={isDelaySync ? 'contained' : 'outlined'}
-                onClick={() => onUpdate({ delaySyncEnabled: !isDelaySync })}
-                sx={{
-                  fontSize: 8, py: 0.1, px: 0.5, minWidth: 28, lineHeight: 1.1,
-                  color: isDelaySync ? undefined : EFFECT_COLORS.delay,
-                  borderColor: EFFECT_COLORS.delay,
-                }}
-              >
-                Sync
-              </Button>
-            </Tooltip>
-            {isDelaySync && (
-              <select
-                value={settings.delayNoteDivision}
-                onChange={(e) => onUpdate({ delayNoteDivision: (e.target as HTMLSelectElement).value as NoteDivision })}
-                style={{
-                  fontSize: 9, padding: '1px 2px', borderRadius: 4,
-                  border: `1px solid ${EFFECT_COLORS.delay}44`,
-                  background: 'transparent', color: 'inherit', width: 36,
-                }}
-                disabled={!settings.delayEnabled}
-              >
-                {NOTE_DIVISIONS.map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
-            )}
-          </Box>
-          {isDelaySync && (
-            <Typography variant="caption" sx={{ fontSize: 8, color: 'text.disabled' }}>
-              {noteToSeconds(settings.delayNoteDivision, settings.bpm).toFixed(2)}s
-            </Typography>
-          )}
+          <SnapControl
+            enabled={settings.delayEnabled}
+            syncEnabled={settings.delaySyncEnabled}
+            noteDivision={settings.delayNoteDivision}
+            color={EFFECT_COLORS.delay}
+            bpm={settings.bpm}
+            onToggleSync={(v) => onUpdate({ delaySyncEnabled: v })}
+            onChangeDivision={(v) => onUpdate({ delayNoteDivision: v })}
+          />
         </EffectCard>
         <PipeConnector color={EFFECT_COLORS.delay} active={settings.delayEnabled} />
         <PipeConnector color={EFFECT_COLORS.delay} active={settings.delayEnabled} />
@@ -264,11 +276,14 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           label="Chorus"
           tooltip={EFFECT_TOOLTIPS.chorus}
           enabled={settings.chorusEnabled}
-          sliderValue={settings.chorusRate}
+          sliderValue={settings.chorusSyncEnabled ? 0.5 : settings.chorusRate}
           sliderMin={0.1}
           sliderMax={10}
           sliderStep={0.1}
-          displayValue={`${settings.chorusRate.toFixed(1)}hz`}
+          displayValue={settings.chorusSyncEnabled
+            ? `${noteToFrequency(settings.chorusNoteDivision, settings.bpm).toFixed(2)}hz`
+            : `${settings.chorusRate.toFixed(1)}hz`
+          }
           onToggle={(checked) => onUpdate({ chorusEnabled: checked })}
           onChange={(value) => onUpdate({ chorusRate: value })}
         >
@@ -291,6 +306,16 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled', mt: -0.25 }}>
             {settings.chorusDepth.toFixed(2)}
           </Typography>
+          <SnapControl
+            enabled={settings.chorusEnabled}
+            syncEnabled={settings.chorusSyncEnabled}
+            noteDivision={settings.chorusNoteDivision}
+            color={EFFECT_COLORS.chorus}
+            showFrequency
+            bpm={settings.bpm}
+            onToggleSync={(v) => onUpdate({ chorusSyncEnabled: v })}
+            onChangeDivision={(v) => onUpdate({ chorusNoteDivision: v })}
+          />
         </EffectCard>
         <PipeConnector color={EFFECT_COLORS.chorus} active={settings.chorusEnabled} />
 
@@ -344,11 +369,14 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           label="Auto Pan"
           tooltip={EFFECT_TOOLTIPS.autoPan}
           enabled={settings.autoPanEnabled}
-          sliderValue={settings.autoPanRate}
+          sliderValue={settings.autoPanSyncEnabled ? 0.5 : settings.autoPanRate}
           sliderMin={0.1}
           sliderMax={20}
           sliderStep={0.1}
-          displayValue={`${settings.autoPanRate.toFixed(1)}hz`}
+          displayValue={settings.autoPanSyncEnabled
+            ? `${noteToFrequency(settings.autoPanNoteDivision, settings.bpm).toFixed(2)}hz`
+            : `${settings.autoPanRate.toFixed(1)}hz`
+          }
           onToggle={(checked) => onUpdate({ autoPanEnabled: checked })}
           onChange={(value) => onUpdate({ autoPanRate: value })}
         >
@@ -371,6 +399,16 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
           <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled', mt: -0.25 }}>
             {settings.autoPanDepth.toFixed(2)}
           </Typography>
+          <SnapControl
+            enabled={settings.autoPanEnabled}
+            syncEnabled={settings.autoPanSyncEnabled}
+            noteDivision={settings.autoPanNoteDivision}
+            color={EFFECT_COLORS.autoPan}
+            showFrequency
+            bpm={settings.bpm}
+            onToggleSync={(v) => onUpdate({ autoPanSyncEnabled: v })}
+            onChangeDivision={(v) => onUpdate({ autoPanNoteDivision: v })}
+          />
         </EffectCard>
       </Box>
     </Box>
