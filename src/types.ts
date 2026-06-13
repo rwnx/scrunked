@@ -21,7 +21,7 @@ export type SnapSettings = {
 }
 
 export const DEFAULT_EFFECT_ORDER = [
-  'speed', 'distortion', 'phaser', 'tremolo', 'reverb',
+  'speed', 'reverse', 'distortion', 'phaser', 'tremolo', 'reverb',
   'delay', 'chorus', 'bitcrusher', 'filter', 'autoPan',
 ] as const
 

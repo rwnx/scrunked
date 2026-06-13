@@ -23,6 +23,7 @@ interface Props {
 
 const EFFECT_LABELS: Record<EffectType, string> = {
   speed: 'Speed',
+  reverse: 'Reverse',
   distortion: 'Distortion',
   phaser: 'Phaser',
   tremolo: 'Tremolo',
@@ -135,6 +136,21 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
             displayValue={`${Math.round(settings.speed * 100)}%`}
             onToggle={(checked) => onUpdate({ speedEnabled: checked })}
             onChange={(value) => onUpdate({ speed: value })}
+            onRemove={() => handleRemoveEffect(index)}
+            dragHandlers={dragHandlers}
+            isDragOver={isDragOver}
+          />
+        )
+
+      case 'reverse':
+        return (
+          <EffectCard
+            key={`effect-${index}-${type}`}
+            color={color}
+            label={label}
+            tooltip={tooltip}
+            enabled={settings.reverseEnabled}
+            onToggle={(checked) => onUpdate({ reverseEnabled: checked })}
             onRemove={() => handleRemoveEffect(index)}
             dragHandlers={dragHandlers}
             isDragOver={isDragOver}
