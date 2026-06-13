@@ -202,7 +202,7 @@ const App: FunctionComponent = () => {
           )
           bpmDetected = detectBpm(buf)
         } catch (e) { console.warn('BPM detection failed:', e) }
-        onUpdate({ file: settings.nextFile, nextFile: undefined, duration: dur, bpmDetected })
+        onUpdate({ file: settings.nextFile, nextFile: undefined, duration: dur, bpmDetected, ...(bpmDetected !== null ? { bpm: bpmDetected } : {}) })
       }
       rebuildChain()
       distortion.set({ distortion: settings.distortionDrive })
