@@ -73,9 +73,11 @@ type Settings = {
   // BPM / Tempo
   bpm: number,
   bpmDetected: number | null,
-  // Delay sync
+  // Tempo sync
   delaySyncEnabled: boolean,
   delayNoteDivision: NoteDivision,
+  chorusSyncEnabled: boolean,
+  chorusNoteDivision: NoteDivision,
 }
 
 const FILTER_MAX = 22_000
@@ -363,6 +365,8 @@ const App: FunctionComponent = () => {
     bpmDetected: null,
     delaySyncEnabled: false,
     delayNoteDivision: '1/4',
+    chorusSyncEnabled: false,
+    chorusNoteDivision: '1/4',
     ...loadPersistedSettings(),
   })
 
@@ -510,6 +514,7 @@ const App: FunctionComponent = () => {
           file: settings.nextFile,
           nextFile: undefined,
           duration,
+          bpm: detectedBpm ?? settings.bpm,
           bpmDetected: detectedBpm,
         }))
       }
@@ -524,7 +529,10 @@ const App: FunctionComponent = () => {
         ? noteToSeconds(settings.delayNoteDivision, settings.bpm)
         : settings.delayTime
       delay.set({ delayTime, feedback: settings.delayFeedback, wet: settings.delayWet })
-      chorus.set({ frequency: settings.chorusRate, depth: settings.chorusDepth })
+      const chorusRate = settings.chorusSyncEnabled
+        ? 1 / noteToSeconds(settings.chorusNoteDivision, settings.bpm)
+        : settings.chorusRate
+      chorus.set({ frequency: chorusRate, depth: settings.chorusDepth })
       bitcrusher.set({ bits: settings.bitcrusherBits })
       if (settings.speedEnabled) {
         player.set({ playbackRate: settings.speed, loop: settings.loop })
@@ -587,7 +595,10 @@ const App: FunctionComponent = () => {
           : settings.delayTime
         const delay = new Tone.PingPongDelay(delayTime, settings.delayFeedback)
         delay.set({ wet: settings.delayWet })
-        const chorus = new Tone.Chorus(settings.chorusRate, 3.5, settings.chorusDepth)
+        const chorusRate = settings.chorusSyncEnabled
+          ? 1 / noteToSeconds(settings.chorusNoteDivision, settings.bpm)
+          : settings.chorusRate
+        const chorus = new Tone.Chorus(chorusRate, 3.5, settings.chorusDepth)
         const bitcrusher = new Tone.BitCrusher(settings.bitcrusherBits)
 
         // Build chain (mirrors rebuildChain logic)
@@ -759,8 +770,8 @@ const App: FunctionComponent = () => {
                   bpm
                 </Typography>
                 {settings.bpmDetected !== null && (
-                  <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', ml: 0.5 }}>
-                    {settings.bpmDetected === settings.bpm ? '✓ detected' : `(detected ${settings.bpmDetected})`}
+                  <Typography variant="caption" sx={{ fontSize: 10, color: '#4caf50', ml: 0.5, fontWeight: 600 }}>
+                    ✓ detected
                   </Typography>
                 )}
               </Box>
@@ -777,19 +788,6 @@ const App: FunctionComponent = () => {
                   sx={{ width: 60, '& input': { fontSize: 12, py: 0.5, textAlign: 'center' } }}
                   inputProps={{ min: 40, max: 300, step: 1 }}
                 />
-                <Button
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: 10, py: 0.2, minWidth: 0, whiteSpace: 'nowrap' }}
-                  onClick={() => {
-                    if (settings.bpmDetected) {
-                      set(mergeSettings({ bpm: settings.bpmDetected }))
-                    }
-                  }}
-                  disabled={!settings.bpmDetected}
-                >
-                  Apply
-                </Button>
               </Box>
             </Box>
 
@@ -906,26 +904,21 @@ const App: FunctionComponent = () => {
                 </Box>
                 {settings.delaySyncEnabled ? (
                   <>
-                    {/* Note division selector — discrete clicks */}
-                    <Box display="flex" flexDirection="column" alignItems="center" sx={{ height: 120, justifyContent: 'center', mb: 0.25 }}>
-                      {NOTE_DIVISIONS.map((note) => (
-                        <Button
-                          key={note}
-                          size="small"
-                          variant={settings.delayNoteDivision === note ? 'contained' : 'text'}
-                          onClick={() => set(mergeSettings({ delayNoteDivision: note }))}
-                          sx={{
-                            fontSize: 10,
-                            py: 0.1,
-                            minWidth: 40,
-                            lineHeight: 1.2,
-                            color: settings.delayNoteDivision === note ? undefined : EFFECT_COLORS.delay,
-                          }}
-                        >
-                          {note}
-                        </Button>
-                      ))}
-                    </Box>
+                    <Slider
+                      orientation="vertical"
+                      value={NOTE_DIVISIONS.indexOf(settings.delayNoteDivision)}
+                      max={NOTE_DIVISIONS.length - 1}
+                      min={0}
+                      step={1}
+                      marks={NOTE_DIVISIONS.map((n, i) => ({ value: i, label: n }))}
+                      sx={{ height: 120, mb: 0.25 }}
+                      disabled={!settings.delayEnabled}
+                      onChange={(_, value) => {
+                        if (Array.isArray(value)) throw new Error('single value required')
+                        const idx = value as number
+                        set(mergeSettings({ delayNoteDivision: NOTE_DIVISIONS[idx] }))
+                      }}
+                    />
                     <Typography variant="caption" sx={{ fontSize: 10 }}>
                       {noteToSeconds(settings.delayNoteDivision, settings.bpm).toFixed(3)}s
                     </Typography>
@@ -972,20 +965,105 @@ const App: FunctionComponent = () => {
               </Card>
               <PipeConnector color={EFFECT_COLORS.delay} />
               
-              {/* Chorus */}
-              <EffectCard
-                color={EFFECT_COLORS.chorus}
-                label="Chorus"
-                tooltip={EFFECT_TOOLTIPS.chorus}
-                enabled={settings.chorusEnabled}
-                sliderValue={settings.chorusRate}
-                sliderMin={0.1}
-                sliderMax={10}
-                sliderStep={0.1}
-                displayValue={`${settings.chorusRate.toFixed(1)}hz`}
-                onToggle={(checked) => set(mergeSettings({ chorusEnabled: checked }))}
-                onChange={(value) => set(mergeSettings({ chorusRate: value }))}
-              />
+              {/* Chorus — with BPM sync */}
+              <Card
+                elevation={settings.chorusEnabled ? 2 : 0}
+                sx={{
+                  minWidth: 120,
+                  flex: '0 1 auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  py: 1.5,
+                  px: 0.5,
+                  opacity: settings.chorusEnabled ? 1 : 0.5,
+                  border: '1px solid',
+                  borderColor: settings.chorusEnabled ? `${EFFECT_COLORS.chorus}44` : 'divider',
+                  borderLeft: 4,
+                  borderLeftColor: EFFECT_COLORS.chorus,
+                  borderRadius: 2,
+                  bgcolor: settings.chorusEnabled ? `${EFFECT_COLORS.chorus}08` : 'transparent',
+                  transition: 'all 0.25s ease',
+                  '&:hover': {
+                    boxShadow: settings.chorusEnabled ? 4 : 0,
+                    bgcolor: settings.chorusEnabled ? `${EFFECT_COLORS.chorus}12` : 'action.hover',
+                  },
+                }}
+              >
+                <Box display="flex" alignItems="center" flexDirection="column" mb={0.5}>
+                  <Tooltip title={EFFECT_TOOLTIPS.chorus} placement="top">
+                    <Checkbox
+                      checked={settings.chorusEnabled}
+                      onChange={(e) => set(mergeSettings({ chorusEnabled: e.currentTarget.checked }))}
+                      sx={{ py: 0, px: 0, '& .MuiSvgIcon-root': { fontSize: 18 } }}
+                      size="small"
+                    />
+                  </Tooltip>
+                  <Typography variant="caption" sx={{ fontSize: 11, lineHeight: 1.1, fontWeight: 500 }}>
+                    Chorus
+                  </Typography>
+                </Box>
+                {settings.chorusSyncEnabled ? (
+                  <>
+                    <Slider
+                      orientation="vertical"
+                      value={NOTE_DIVISIONS.indexOf(settings.chorusNoteDivision)}
+                      max={NOTE_DIVISIONS.length - 1}
+                      min={0}
+                      step={1}
+                      marks={NOTE_DIVISIONS.map((n, i) => ({ value: i, label: n }))}
+                      sx={{ height: 120, mb: 0.25 }}
+                      disabled={!settings.chorusEnabled}
+                      onChange={(_, value) => {
+                        if (Array.isArray(value)) throw new Error('single value required')
+                        const idx = value as number
+                        set(mergeSettings({ chorusNoteDivision: NOTE_DIVISIONS[idx] }))
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ fontSize: 10 }}>
+                      {noteToSeconds(settings.chorusNoteDivision, settings.bpm).toFixed(3)}s
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Slider
+                      orientation="vertical"
+                      value={settings.chorusRate}
+                      max={10}
+                      min={0.1}
+                      step={0.1}
+                      sx={{ height: 120, mb: 0.25 }}
+                      disabled={!settings.chorusEnabled}
+                      onChange={(_, value) => {
+                        if (Array.isArray(value)) throw new Error('single value required')
+                        set(mergeSettings({ chorusRate: value as number }))
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ fontSize: 11 }}>
+                      {settings.chorusRate.toFixed(1)}hz
+                    </Typography>
+                  </>
+                )}
+                {/* Sync toggle */}
+                <Tooltip title="Sync chorus rate to BPM">
+                  <Button
+                    size="small"
+                    variant={settings.chorusSyncEnabled ? 'contained' : 'outlined'}
+                    onClick={() => set(mergeSettings({ chorusSyncEnabled: !settings.chorusSyncEnabled }))}
+                    sx={{
+                      mt: 0.5,
+                      fontSize: 9,
+                      py: 0.1,
+                      minWidth: 36,
+                      lineHeight: 1.1,
+                      color: settings.chorusSyncEnabled ? undefined : EFFECT_COLORS.chorus,
+                      borderColor: EFFECT_COLORS.chorus,
+                    }}
+                  >
+                    Sync
+                  </Button>
+                </Tooltip>
+              </Card>
               <PipeConnector color={EFFECT_COLORS.chorus} />
               {/* BitCrusher */}
               <EffectCard
