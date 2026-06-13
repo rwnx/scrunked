@@ -24,8 +24,9 @@ import AppFooter from './components/AppFooter';
 import {
   Settings, STORAGE_KEY, persistedSettingsSchema,
   FILTER_MAX, detectBpm, audioBufferToWavBlob, downloadBlob,
-  noteToSeconds, noteToFrequency, DEFAULT_EFFECT_ORDER,
+  noteToSeconds, noteToFrequency, CHAINABLE_EFFECTS, createDefaultInstance,
 } from './types';
+import type { EffectType, EffectInstance } from './types';
 
 const mergeSettings = (next: Partial<Settings>) => (state: Settings) => ({ ...state, ...next })
 
@@ -47,6 +48,43 @@ function savePersistedSettings(settings: Settings): void {
   catch { /* silently ignore */ }
 }
 
+/** Create a Tone.js node from an effect instance. */
+function createNode(instance: { type: EffectType; params: any }): Tone.ToneAudioNode {
+  const p = instance.params
+  switch (instance.type) {
+    case 'distortion': return new Tone.Distortion(p.drive)
+    case 'phaser':     return new Tone.Phaser({ frequency: p.rate, octaves: 5, baseFrequency: 500 })
+    case 'tremolo':    return new Tone.Tremolo(p.rate, p.depth)
+    case 'reverb':     return new Tone.Reverb({ decay: p.decay })
+    case 'delay':      return new Tone.PingPongDelay(p.time, p.feedback)
+    case 'chorus':     return new Tone.Chorus(p.rate, 3.5, p.depth)
+    case 'bitcrusher': return new Tone.BitCrusher(p.bits)
+    case 'filter':     return new Tone.Filter(p.cutoff, 'lowpass', -48)
+    case 'autoPan':    return new Tone.AutoPanner(p.rate)
+    default:           throw new Error(`no node for ${instance.type}`)
+  }
+}
+
+/** Apply parameters from an effect instance to its node. */
+function applyParams(instance: { type: EffectType; params: any }, node: Tone.ToneAudioNode, bpm: number): void {
+  const p = instance.params
+  switch (instance.type) {
+    case 'distortion': (node as Tone.Distortion).set({ distortion: p.drive }); break
+    case 'phaser':     (node as Tone.Phaser).set({ frequency: p.syncEnabled ? noteToFrequency(p.noteDivision, bpm) : p.rate }); break
+    case 'tremolo':    (node as Tone.Tremolo).set({ frequency: p.syncEnabled ? noteToFrequency(p.noteDivision, bpm) : p.rate, depth: p.depth }); break
+    case 'reverb':     (node as Tone.Reverb).set({ decay: p.syncEnabled ? noteToSeconds(p.noteDivision, bpm) : p.decay }); break
+    case 'delay': {
+      const dt = p.syncEnabled ? noteToSeconds(p.noteDivision, bpm) : p.time
+      ;(node as Tone.PingPongDelay).set({ delayTime: dt, feedback: p.feedback, wet: p.wet })
+      break
+    }
+    case 'chorus':     (node as Tone.Chorus).set({ frequency: p.syncEnabled ? noteToFrequency(p.noteDivision, bpm) : p.rate, depth: p.depth }); break
+    case 'bitcrusher': (node as Tone.BitCrusher).set({ bits: p.bits }); break
+    case 'filter':     (node as Tone.Filter).set({ frequency: p.cutoff }); break
+    case 'autoPan':    (node as Tone.AutoPanner).set({ frequency: p.syncEnabled ? noteToFrequency(p.noteDivision, bpm) : p.rate, depth: p.depth }); break
+  }
+}
+
 const App: FunctionComponent = () => {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)')
   const theme = useMemo(() => createTheme({
@@ -61,42 +99,20 @@ const App: FunctionComponent = () => {
     components: { MuiCard: { styleOverrides: { root: { backgroundImage: 'none' } } } },
   }), [prefersDarkMode])
 
+  const persisted = loadPersistedSettings()
   const [settings, set] = useState<Settings>({
-    effectOrder: [...DEFAULT_EFFECT_ORDER],
-    speedEnabled: true, speed: 1, filterEnabled: true, filterCutoff: FILTER_MAX,
+    effectInstances: CHAINABLE_EFFECTS.map((t) => createDefaultInstance(t)),
     loop: true, file: undefined, duration: undefined, nextFile: undefined, state: 'init',
-    distortionEnabled: false, distortionDrive: 0.5,
-    reverbEnabled: false, reverbDecay: 2,
-    delayEnabled: false, delayTime: 0.25, delayFeedback: 0.3, delayWet: 0.5,
-    chorusEnabled: false, chorusRate: 1.5, chorusDepth: 0.7,
-    bitcrusherEnabled: false, bitcrusherBits: 8,
-    tremoloEnabled: false, tremoloRate: 5, tremoloDepth: 0.5,
-    phaserEnabled: false, phaserRate: 0.5, phaserDepth: 0.5, phaserFeedback: 0.3,
-    autoPanEnabled: false, autoPanRate: 0.5, autoPanDepth: 0.5,
-    reverseEnabled: false,
-    bpm: 120, bpmDetected: null,
-    delaySyncEnabled: false, delayNoteDivision: '1/4',
-    phaserSyncEnabled: false, phaserNoteDivision: '1/4',
-    tremoloSyncEnabled: false, tremoloNoteDivision: '1/4',
-    chorusSyncEnabled: false, chorusNoteDivision: '1/4',
-    reverbSyncEnabled: false, reverbNoteDivision: '1/4',
-    autoPanSyncEnabled: false, autoPanNoteDivision: '1/4',
-    ...loadPersistedSettings(),
+    bpm: 120, bpmDetected: null, speedEnabled: true, speed: 1, reverseEnabled: false,
+    ...persisted,
   })
   const onUpdate = useCallback((partial: Partial<Settings>) => { set(mergeSettings(partial)) }, [])
   const throttledSettings = useThrottle(settings, 250)
 
   const [player] = useState(() => new Tone.Player())
-  const [filterNode] = useState(() => new Tone.Filter(settings.filterCutoff, 'lowpass', -48))
   const [comp] = useState(() => new Tone.Compressor(-24, 12))
-  const [distortion] = useState(() => new Tone.Distortion(0.5))
-  const [reverb] = useState(() => new Tone.Reverb({ decay: 2 }))
-  const [delay] = useState(() => new Tone.PingPongDelay(0.25, 0.3))
-  const [chorus] = useState(() => new Tone.Chorus(1.5, 3.5, 0.7))
-  const [bitcrusher] = useState(() => new Tone.BitCrusher(8))
-  const [tremolo] = useState(() => new Tone.Tremolo(5, 0.5))
-  const [phaser] = useState(() => new Tone.Phaser({ frequency: 0.5, octaves: 5, baseFrequency: 500 }))
-  const [autoPan] = useState(() => new Tone.AutoPanner(0.5))
+  /** Map of instance ID → Tone.js audio node (dynamically created/destroyed). */
+  const nodesRef = useRef<Map<string, Tone.ToneAudioNode>>(new Map())
 
   const waveformRef = useRef<HTMLDivElement | null>(null)
   const [waveform, setWaveform] = useState<WaveSurfer | undefined>()
@@ -106,32 +122,48 @@ const App: FunctionComponent = () => {
   const [isExporting, setIsExporting] = useState(false)
   const playbackStartTimeRef = useRef(0)
   const playbackOffsetRef = useRef(0)
+  /** Tracks the chain topology key to avoid rebuilding the chain on param-only changes. */
+  const topologyKeyRef = useRef('')
 
-  const rebuildChain = useCallback(() => {
-    try { (chorus as any).stop() } catch {}
-    try { (tremolo as any).stop() } catch {}
-    try { (autoPan as any).stop() } catch {}
-    for (const n of [player, distortion, phaser, tremolo, reverb, delay, chorus, bitcrusher, filterNode, comp, autoPan]) {
-      try { n.disconnect() } catch {}
-    }
-    let last: Tone.ToneAudioNode = player
-    for (const effectType of settings.effectOrder) {
-      switch (effectType) {
-        case 'speed': break // speed is handled via player.playbackRate
-        case 'distortion': if (settings.distortionEnabled) { last.connect(distortion); last = distortion }; break
-        case 'phaser': if (settings.phaserEnabled) { last.connect(phaser); last = phaser }; break
-        case 'tremolo': if (settings.tremoloEnabled) { last.connect(tremolo); try { (tremolo as any).start() } catch {}; last = tremolo }; break
-        case 'reverb': if (settings.reverbEnabled) { last.connect(reverb); last = reverb }; break
-        case 'delay': if (settings.delayEnabled) { last.connect(delay); last = delay }; break
-        case 'chorus': if (settings.chorusEnabled) { last.connect(chorus); try { (chorus as any).start() } catch {}; last = chorus }; break
-        case 'bitcrusher': if (settings.bitcrusherEnabled) { last.connect(bitcrusher); last = bitcrusher }; break
-        case 'filter': if (settings.filterEnabled) { last.connect(filterNode); last = filterNode }; break
-        case 'autoPan': if (settings.autoPanEnabled) { last.connect(autoPan); try { (autoPan as any).start() } catch {}; last = autoPan }; break
+  // ── Dynamic node sync (create/destroy/apply params) ────────────────
+  const syncNodes = useCallback((instances: Settings['effectInstances'], bpm: number) => {
+    const nodes = nodesRef.current
+    const neededIds = new Set(instances.map((i) => i.id))
+    for (const [id, node] of nodes) {
+      if (!neededIds.has(id)) {
+        try { (node as any).dispose() } catch {}
+        nodes.delete(id)
       }
+    }
+    for (const inst of instances) {
+      if (nodes.has(inst.id)) continue
+      const node = createNode(inst)
+      if (inst.type === 'chorus' || inst.type === 'tremolo' || inst.type === 'autoPan') {
+        try { (node as any).start() } catch {}
+      }
+      nodes.set(inst.id, node)
+    }
+    for (const inst of instances) {
+      const node = nodes.get(inst.id)
+      if (node) applyParams(inst, node, bpm)
+    }
+  }, [])
+
+  // ── Rebuild audio chain ─────────────────────────────────────────────
+  const rebuildChain = useCallback(() => {
+    const nodes = nodesRef.current
+    for (const [, node] of nodes) { try { node.disconnect() } catch {} }
+    try { player.disconnect() } catch {}
+    try { comp.disconnect() } catch {}
+    let last: Tone.ToneAudioNode = player
+    for (const inst of settings.effectInstances) {
+      if (!inst.params.enabled) continue
+      const node = nodes.get(inst.id)
+      if (node) { last.connect(node); last = node }
     }
     last.connect(comp)
     comp.connect(Tone.Destination)
-  }, [settings.effectOrder, settings.distortionEnabled, settings.phaserEnabled, settings.tremoloEnabled, settings.reverbEnabled, settings.delayEnabled, settings.chorusEnabled, settings.bitcrusherEnabled, settings.filterEnabled, settings.autoPanEnabled, player, distortion, phaser, tremolo, reverb, delay, chorus, bitcrusher, filterNode, comp, autoPan])
+  }, [settings.effectInstances, player, comp])
 
   useEffect(() => {
     if (!waveformRef.current) return
@@ -154,6 +186,9 @@ const App: FunctionComponent = () => {
     return () => { ws.destroy() }
   }, [waveformRef.current])
 
+  /** Simple reverse toggle — locked at the start of the effects panel. */
+  const isReverseActive = settings.reverseEnabled
+
   useEffect(() => {
     if (!waveform || !settings.duration) return
     const interval = setInterval(() => {
@@ -161,7 +196,7 @@ const App: FunctionComponent = () => {
         const elapsed = Tone.now() - playbackStartTimeRef.current
         let pos: number
         let revProgress = 0
-        if (settings.reverseEnabled) {
+        if (isReverseActive) {
           pos = playbackOffsetRef.current - elapsed
           if (pos <= 0) {
             if (settings.loop) {
@@ -184,13 +219,15 @@ const App: FunctionComponent = () => {
       }
     }, 50)
     return () => clearInterval(interval)
-  }, [waveform, isPlaying, settings.duration])
+  }, [waveform, isPlaying, settings.duration, isReverseActive])
 
   useEffect(() => {
+    let cancelled = false
     async function sync() {
       if (settings.state === 'init') {
+        syncNodes(settings.effectInstances, settings.bpm)
         rebuildChain()
-        set(s => ({ ...s, state: 'ready' }))
+        if (!cancelled) set(s => ({ ...s, state: 'ready' }))
         return
       }
       if (settings.nextFile) {
@@ -208,24 +245,27 @@ const App: FunctionComponent = () => {
           )
           bpmDetected = detectBpm(buf)
         } catch (e) { console.warn('BPM detection failed:', e) }
-        onUpdate({ file: settings.nextFile, nextFile: undefined, duration: dur, bpmDetected, ...(bpmDetected !== null ? { bpm: bpmDetected } : {}) })
+        if (!cancelled) {
+          onUpdate({ file: settings.nextFile, nextFile: undefined, duration: dur, bpmDetected, ...(bpmDetected !== null ? { bpm: bpmDetected } : {}) })
+        }
       }
-      rebuildChain()
-      distortion.set({ distortion: settings.distortionDrive })
-      reverb.set({ decay: settings.reverbSyncEnabled ? noteToSeconds(settings.reverbNoteDivision, settings.bpm) : settings.reverbDecay })
-      const dt = settings.delaySyncEnabled ? noteToSeconds(settings.delayNoteDivision, settings.bpm) : settings.delayTime
-      delay.set({ delayTime: dt, feedback: settings.delayFeedback, wet: settings.delayWet })
-      chorus.set({ frequency: settings.chorusSyncEnabled ? noteToFrequency(settings.chorusNoteDivision, settings.bpm) : settings.chorusRate, depth: settings.chorusDepth })
-      bitcrusher.set({ bits: settings.bitcrusherBits })
-      tremolo.set({ frequency: settings.tremoloSyncEnabled ? noteToFrequency(settings.tremoloNoteDivision, settings.bpm) : settings.tremoloRate, depth: settings.tremoloDepth })
-      phaser.set({ frequency: settings.phaserSyncEnabled ? noteToFrequency(settings.phaserNoteDivision, settings.bpm) : settings.phaserRate })
-      autoPan.set({ frequency: settings.autoPanSyncEnabled ? noteToFrequency(settings.autoPanNoteDivision, settings.bpm) : settings.autoPanRate, depth: settings.autoPanDepth })
+      syncNodes(settings.effectInstances, settings.bpm)
+      // Only rebuild chain when topology changes (instances added/removed/reordered/enable toggled)
+      const newKey = settings.effectInstances.map((i) => `${i.id}:${i.params.enabled}`).join('|')
+      if (newKey !== topologyKeyRef.current) {
+        topologyKeyRef.current = newKey
+        rebuildChain()
+      }
+      // Speed & reverse — locked one-off controls at the top of the effects panel
       player.set({ playbackRate: settings.speedEnabled ? settings.speed : 1, loop: settings.loop })
       player.reverse = settings.reverseEnabled
-      filterNode.set({ frequency: settings.filterCutoff })
     }
     sync()
-  }, [throttledSettings, waveform, rebuildChain])
+    return () => { cancelled = true }
+  // Intentionally omitting rebuildChain from deps — we call it conditionally
+  // based on the topology key, and throttledSettings ensures fresh closures.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [throttledSettings, waveform, syncNodes, player, onUpdate])
 
   useEffect(() => { savePersistedSettings(settings) }, [settings])
 
@@ -235,7 +275,7 @@ const App: FunctionComponent = () => {
       player.stop()
       if (settings.duration) {
         const elapsed = Tone.now() - playbackStartTimeRef.current
-        setSeekPosition(settings.reverseEnabled
+        setSeekPosition(isReverseActive
           ? Math.max(0, playbackOffsetRef.current - elapsed)
           : Math.min(playbackOffsetRef.current + elapsed, settings.duration))
       }
@@ -253,36 +293,26 @@ const App: FunctionComponent = () => {
     if (!buf || !settings.duration) return
     setIsExporting(true)
     try {
-      const dur = settings.duration / settings.speed
+      const effectiveSpeed = settings.speedEnabled ? settings.speed : 1
+      const dur = settings.duration / effectiveSpeed
       const result = await Tone.Offline(async () => {
         const p = new Tone.Player(buf)
-        const f = new Tone.Filter(settings.filterCutoff, 'lowpass', -48)
         const c = new Tone.Compressor(-24, 12)
-        const d = new Tone.Distortion(settings.distortionDrive)
-        const r = new Tone.Reverb({ decay: settings.reverbSyncEnabled ? noteToSeconds(settings.reverbNoteDivision, settings.bpm) : settings.reverbDecay })
-        await r.ready
-        const dt = settings.delaySyncEnabled ? noteToSeconds(settings.delayNoteDivision, settings.bpm) : settings.delayTime
-        const dl = new Tone.PingPongDelay(dt, settings.delayFeedback)
-        dl.set({ wet: settings.delayWet })
-        const cr = settings.chorusSyncEnabled ? noteToFrequency(settings.chorusNoteDivision, settings.bpm) : settings.chorusRate
-        const ch = new Tone.Chorus(cr, 3.5, settings.chorusDepth)
-        const bc = new Tone.BitCrusher(settings.bitcrusherBits)
-        const tr = new Tone.Tremolo(settings.tremoloSyncEnabled ? noteToFrequency(settings.tremoloNoteDivision, settings.bpm) : settings.tremoloRate, settings.tremoloDepth)
-        const ph = new Tone.Phaser({ frequency: settings.phaserSyncEnabled ? noteToFrequency(settings.phaserNoteDivision, settings.bpm) : settings.phaserRate, octaves: 5, baseFrequency: 500 })
-        const ap = new Tone.AutoPanner(settings.autoPanSyncEnabled ? noteToFrequency(settings.autoPanNoteDivision, settings.bpm) : settings.autoPanRate)
-        ap.set({ depth: settings.autoPanDepth })
         let last: Tone.ToneAudioNode = p
-        if (settings.distortionEnabled) { last.connect(d); last = d }
-        if (settings.phaserEnabled) { last.connect(ph); last = ph }
-        if (settings.tremoloEnabled) { last.connect(tr); try { (tr as any).start() } catch {}; last = tr }
-        if (settings.reverbEnabled) { last.connect(r); last = r }
-        if (settings.delayEnabled) { last.connect(dl); last = dl }
-        if (settings.chorusEnabled) { last.connect(ch); try { (ch as any).start() } catch {}; last = ch }
-        if (settings.bitcrusherEnabled) { last.connect(bc); last = bc }
-        last.connect(f)
-        if (settings.autoPanEnabled) { f.connect(ap); last = ap }
-        last.connect(c); c.toDestination()
-        p.loop = false; p.playbackRate = settings.speed; p.reverse = settings.reverseEnabled; p.start(0)
+        for (const inst of settings.effectInstances) {
+          if (!inst.params.enabled) continue
+          const node = createNode(inst)
+          if (inst.type === 'chorus' || inst.type === 'tremolo' || inst.type === 'autoPan') {
+            try { (node as any).start() } catch {}
+          }
+          if (inst.type === 'reverb') await (node as Tone.Reverb).ready
+          applyParams(inst, node, settings.bpm)
+          last.connect(node)
+          last = node
+        }
+        last.connect(c)
+        c.toDestination()
+        p.loop = false; p.playbackRate = effectiveSpeed; p.reverse = settings.reverseEnabled; p.start(0)
       }, dur)
       const wavBlob = audioBufferToWavBlob(result.get()!)
       const baseName = settings.file!.name.replace(/\.[^/.]+$/, '')
@@ -310,7 +340,7 @@ const App: FunctionComponent = () => {
             </Tooltip>
           </Box>
           <FileDropArea hasFile={hasFile} fileName={settings.file?.name} onFile={(file) => onUpdate({ nextFile: file })} />
-          <TransportBar isPlaying={isPlaying} isExporting={isExporting} duration={settings.duration} hasFile={hasFile} waveformRef={waveformRef} onPlayPause={handlePlayPause} onExport={handleExport} reverseEnabled={settings.reverseEnabled} reverseProgress={reverseProgress} />
+          <TransportBar isPlaying={isPlaying} isExporting={isExporting} duration={settings.duration} hasFile={hasFile} waveformRef={waveformRef} onPlayPause={handlePlayPause} onExport={handleExport} reverseEnabled={isReverseActive} reverseProgress={reverseProgress} />
           {hasFile && (
             <Box display="flex" alignItems="center" flexWrap="wrap" sx={{ mt: 1, mb: 1.5, gap: { xs: 1, sm: 1.5 } }}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, fontSize: 12 }}>Tempo</Typography>

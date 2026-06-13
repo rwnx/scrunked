@@ -20,62 +20,80 @@ export type SnapSettings = {
   noteDivision: NoteDivision;
 }
 
-export const DEFAULT_EFFECT_ORDER = [
-  'speed', 'reverse', 'distortion', 'phaser', 'tremolo', 'reverb',
+/** Effect types available as chainable instances (speed & reverse are standalone). */
+export const CHAINABLE_EFFECTS = [
+  'distortion', 'phaser', 'tremolo', 'reverb',
   'delay', 'chorus', 'bitcrusher', 'filter', 'autoPan',
 ] as const
 
-export type EffectType = (typeof DEFAULT_EFFECT_ORDER)[number]
+/** Standalone controls rendered as locked bars above the effects grid. */
+export const STANDALONE_EFFECTS = ['speed', 'reverse'] as const
 
+/** Full ordered list including all effect names for chain display. */
+export const DEFAULT_EFFECT_ORDER = [
+  ...STANDALONE_EFFECTS, ...CHAINABLE_EFFECTS,
+] as const
+
+/** Union of all effect names for display/lookup purposes (colors, tooltips, labels). */
+export type AllEffectType = (typeof DEFAULT_EFFECT_ORDER)[number]
+
+/** Union of chainable effect types — speed & reverse are not in this set. */
+export type EffectType = (typeof CHAINABLE_EFFECTS)[number]
+
+/**
+ * Per-effect-type parameter interfaces for chainable effects.
+ * Speed and reverse are standalone controls at the top (not in the chain grid).
+ */
+export type EffectParams = {
+  distortion: { enabled: boolean; drive: number }
+  phaser: { enabled: boolean; rate: number; depth: number; feedback: number; syncEnabled: boolean; noteDivision: NoteDivision }
+  tremolo: { enabled: boolean; rate: number; depth: number; syncEnabled: boolean; noteDivision: NoteDivision }
+  reverb: { enabled: boolean; decay: number; syncEnabled: boolean; noteDivision: NoteDivision }
+  delay: { enabled: boolean; time: number; feedback: number; wet: number; syncEnabled: boolean; noteDivision: NoteDivision }
+  chorus: { enabled: boolean; rate: number; depth: number; syncEnabled: boolean; noteDivision: NoteDivision }
+  bitcrusher: { enabled: boolean; bits: number }
+  filter: { enabled: boolean; cutoff: number }
+  autoPan: { enabled: boolean; rate: number; depth: number; syncEnabled: boolean; noteDivision: NoteDivision }
+}
+
+/** A single effect instance in the chain — type-safe params via discriminated union. */
+export type EffectInstance<T extends EffectType = EffectType> = {
+  id: string
+  type: T
+  params: EffectParams[T]
+}
+
+/** Simplified top-level settings — effect params live per-instance. */
 export type Settings = {
-  effectOrder: EffectType[];
-  speedEnabled: boolean;
-  speed: number;
-  filterEnabled: boolean;
-  filterCutoff: number;
-  file: File | undefined;
-  duration: number | undefined;
-  nextFile: File | undefined;
-  loop: boolean;
-  state: "ready" | "init";
-  distortionEnabled: boolean;
-  distortionDrive: number;
-  reverbEnabled: boolean;
-  reverbDecay: number;
-  delayEnabled: boolean;
-  delayTime: number;
-  delayFeedback: number;
-  delayWet: number;
-  chorusEnabled: boolean;
-  chorusRate: number;
-  chorusDepth: number;
-  bitcrusherEnabled: boolean;
-  bitcrusherBits: number;
-  tremoloEnabled: boolean;
-  tremoloRate: number;
-  tremoloDepth: number;
-  phaserEnabled: boolean;
-  phaserRate: number;
-  phaserDepth: number;
-  phaserFeedback: number;
-  autoPanEnabled: boolean;
-  autoPanRate: number;
-  autoPanDepth: number;
-  reverseEnabled: boolean;
-  bpm: number;
-  bpmDetected: number | null;
-  delaySyncEnabled: boolean;
-  delayNoteDivision: NoteDivision;
-  phaserSyncEnabled: boolean;
-  phaserNoteDivision: NoteDivision;
-  tremoloSyncEnabled: boolean;
-  tremoloNoteDivision: NoteDivision;
-  chorusSyncEnabled: boolean;
-  chorusNoteDivision: NoteDivision;
-  reverbSyncEnabled: boolean;
-  reverbNoteDivision: NoteDivision;
-  autoPanSyncEnabled: boolean;
-  autoPanNoteDivision: NoteDivision;
+  effectInstances: EffectInstance[]
+  speedEnabled: boolean
+  speed: number
+  reverseEnabled: boolean
+  file: File | undefined
+  duration: number | undefined
+  nextFile: File | undefined
+  loop: boolean
+  state: "ready" | "init"
+  bpm: number
+  bpmDetected: number | null
+}
+
+/** Create a default EffectInstance for a given type with a unique ID. */
+let _idCounter = 0
+export function createDefaultInstance(type: EffectType, id?: string): EffectInstance {
+  const instanceId = id || `${type}--${++_idCounter}`
+  const n = (v: NoteDivision): NoteDivision => v
+  switch (type) {
+    case 'distortion': return { id: instanceId, type: 'distortion', params: { enabled: false, drive: 0.5 } }
+    case 'phaser':     return { id: instanceId, type: 'phaser',     params: { enabled: false, rate: 0.5, depth: 0.5, feedback: 0.3, syncEnabled: false, noteDivision: n('1/4') } }
+    case 'tremolo':    return { id: instanceId, type: 'tremolo',    params: { enabled: false, rate: 5, depth: 0.5, syncEnabled: false, noteDivision: n('1/4') } }
+    case 'reverb':     return { id: instanceId, type: 'reverb',     params: { enabled: false, decay: 2, syncEnabled: false, noteDivision: n('1/4') } }
+    case 'delay':      return { id: instanceId, type: 'delay',      params: { enabled: false, time: 0.25, feedback: 0.3, wet: 0.5, syncEnabled: false, noteDivision: n('1/4') } }
+    case 'chorus':     return { id: instanceId, type: 'chorus',     params: { enabled: false, rate: 1.5, depth: 0.7, syncEnabled: false, noteDivision: n('1/4') } }
+    case 'bitcrusher': return { id: instanceId, type: 'bitcrusher', params: { enabled: false, bits: 8 } }
+    case 'filter':     return { id: instanceId, type: 'filter',     params: { enabled: true, cutoff: FILTER_MAX } }
+    case 'autoPan':    return { id: instanceId, type: 'autoPan',    params: { enabled: false, rate: 0.5, depth: 0.5, syncEnabled: false, noteDivision: n('1/4') } }
+  }
 }
 
 export const EFFECT_COLORS = {
@@ -106,45 +124,26 @@ export const EFFECT_TOOLTIPS: Record<string, string> = {
   reverse: 'Plays the audio backwards — turn on to hear your track in reverse.',
 }
 
+/** Zod schema for a single effect instance — persisted across sessions. */
+const effectInstanceSchema = z.discriminatedUnion('type', [
+  z.object({ id: z.string(), type: z.literal('distortion'), params: z.object({ enabled: z.boolean(), drive: z.number() }) }),
+  z.object({ id: z.string(), type: z.literal('phaser'),     params: z.object({ enabled: z.boolean(), rate: z.number(), depth: z.number(), feedback: z.number(), syncEnabled: z.boolean(), noteDivision: z.string() }) }),
+  z.object({ id: z.string(), type: z.literal('tremolo'),    params: z.object({ enabled: z.boolean(), rate: z.number(), depth: z.number(), syncEnabled: z.boolean(), noteDivision: z.string() }) }),
+  z.object({ id: z.string(), type: z.literal('reverb'),     params: z.object({ enabled: z.boolean(), decay: z.number(), syncEnabled: z.boolean(), noteDivision: z.string() }) }),
+  z.object({ id: z.string(), type: z.literal('delay'),      params: z.object({ enabled: z.boolean(), time: z.number(), feedback: z.number(), wet: z.number(), syncEnabled: z.boolean(), noteDivision: z.string() }) }),
+  z.object({ id: z.string(), type: z.literal('chorus'),     params: z.object({ enabled: z.boolean(), rate: z.number(), depth: z.number(), syncEnabled: z.boolean(), noteDivision: z.string() }) }),
+  z.object({ id: z.string(), type: z.literal('bitcrusher'), params: z.object({ enabled: z.boolean(), bits: z.number() }) }),
+  z.object({ id: z.string(), type: z.literal('filter'),     params: z.object({ enabled: z.boolean(), cutoff: z.number() }) }),
+  z.object({ id: z.string(), type: z.literal('autoPan'),    params: z.object({ enabled: z.boolean(), rate: z.number(), depth: z.number(), syncEnabled: z.boolean(), noteDivision: z.string() }) }),
+])
+
 export const persistedSettingsSchema = z.object({
-  effectOrder: z.array(z.string()).optional(),
-  filterCutoff: z.number(),
-  speed: z.number(),
+  effectInstances: z.array(effectInstanceSchema),
   loop: z.boolean(),
-  distortionEnabled: z.boolean(),
-  distortionDrive: z.number(),
-  reverbEnabled: z.boolean(),
-  reverbDecay: z.number(),
-  delayEnabled: z.boolean(),
-  delayTime: z.number(),
-  delayFeedback: z.number(),
-  delayWet: z.number(),
-  chorusEnabled: z.boolean(),
-  chorusRate: z.number(),
-  chorusDepth: z.number(),
-  bitcrusherEnabled: z.boolean(),
-  bitcrusherBits: z.number(),
-  tremoloEnabled: z.boolean(),
-  tremoloRate: z.number(),
-  tremoloDepth: z.number(),
-  phaserEnabled: z.boolean(),
-  phaserRate: z.number(),
-  phaserDepth: z.number(),
-  phaserFeedback: z.number(),
-  autoPanEnabled: z.boolean(),
-  autoPanRate: z.number(),
-  autoPanDepth: z.number(),
-  reverseEnabled: z.boolean(),
-  phaserSyncEnabled: z.boolean(),
-  phaserNoteDivision: z.string(),
-  tremoloSyncEnabled: z.boolean(),
-  tremoloNoteDivision: z.string(),
-  chorusSyncEnabled: z.boolean(),
-  chorusNoteDivision: z.string(),
-  reverbSyncEnabled: z.boolean(),
-  reverbNoteDivision: z.string(),
-  autoPanSyncEnabled: z.boolean(),
-  autoPanNoteDivision: z.string(),
+  bpm: z.number(),
+  speedEnabled: z.boolean().optional(),
+  speed: z.number().optional(),
+  reverseEnabled: z.boolean().optional(),
 })
 
 export const filterCutoffMarks = [
@@ -161,5 +160,5 @@ export const filterCutoffMarks = [
 export {
   getScaleValue, getValueFromScale, humanFormat,
   noteToSeconds, noteToFrequency, formatNoteDivision,
-  detectBpm, audioBufferToWavBlob, downloadBlob
+  detectBpm, audioBufferToWavBlob, downloadBlob,
 }

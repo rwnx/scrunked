@@ -7,6 +7,8 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ### Added
 
+- **Multiple effect instances** — the same effect type can now be added to the chain more than once, each with independent settings.
+- **Reverse is now a proper chainable audio effect** (`ReverseEffect`) — a real-time buffered reverse processor that sits in the signal chain like any other effect. Effects placed BEFORE a reverse node get their processed output reversed, and effects AFTER process the reversed audio. Multiple reverse instances chain correctly (double reverse = forward). Uses a double-buffer approach via ScriptProcessorNode with ~300ms latency buffer. Internally, effects are stored as instance objects (`{ id, type, params }`) with a discriminated union for type-safe params per effect type. Audio nodes are created/destroyed dynamically as instances change.
 - Reverse effect card — toggles reverse playback via `Tone.Player.reverse`, placed next to Speed in the effects grid as a binary toggle (no slider). Waveform position and seek logic adjusts for reverse direction during playback, with a custom progress overlay that fills from left to right as audio plays backwards.
 - Dynamic effects chain — effects can now be added/removed from the chain and reordered via drag and drop, with an "Add Effect" menu showing available effect types
 - Effect cards now have a drag handle (top-left) and remove button (top-right, shown on hover) for managing effect positions and presence
@@ -26,6 +28,8 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ### Changed
 
+- **Reverse now uses parity**: enabled reverse instances are counted — odd count = reversed, even count = forward. This allows double-reversal (two reverse effects cancel out) and enables reverse chaining with other effects.
+- **Performance fix**: `rebuildChain()` (which disconnects/reconnects the entire audio graph) is now only called when the chain topology changes (instances added, removed, reordered, or enable-toggled), not on every slider param change. Slider drags during playback no longer cause audio glitches.
 - Effect cards now render in a responsive CSS Grid (`repeat(auto-fill, minmax(130px, 1fr))`) instead of a flex row with pipe connectors — cards reflow neatly into columns on smaller screens without visual artifacts
 - Removed `PipeConnector` arrow icons between cards (the text-based chain display still shows signal flow)
 - Effect card sizing is fully responsive: reduced padding and slider height on small screens (≤600px), full width within grid cells
