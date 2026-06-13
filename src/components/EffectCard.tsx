@@ -6,7 +6,6 @@ import Slider from '@mui/material/Slider';
 import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import CloseIcon from '@mui/icons-material/Close';
 
 export type CardDef = {
@@ -74,6 +73,7 @@ const EffectCard: FunctionComponent<CardDef> = ({
       borderColor: isDragOver ? color : enabled ? `${color}55` : 'divider',
       borderRadius: 2.5,
       position: 'relative',
+      overflow: 'visible',
       bgcolor: enabled ? `${color}0a` : 'background.paper',
       backdropFilter: enabled ? 'blur(8px)' : 'none',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -117,18 +117,28 @@ const EffectCard: FunctionComponent<CardDef> = ({
       </IconButton>
     )}
 
-    {/* Drag handle */}
+    {/* Dotted grip strip — drag handle across the full top edge */}
     {dragHandlers && (
-      <DragIndicatorIcon
+      <Box
         sx={{
           position: 'absolute',
-          top: 2,
-          left: 2,
-          fontSize: 14,
-          color: 'text.disabled',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 8,
+          borderTopLeftRadius: 'inherit',
+          borderTopRightRadius: 'inherit',
+          backgroundImage: `radial-gradient(circle, ${color}66 0.75px, transparent 0.75px)`,
+          backgroundSize: '5px 5px',
+          backgroundPosition: '0 0',
+          opacity: 0.55,
+          transition: 'opacity 0.2s, height 0.2s',
           cursor: 'grab',
-          opacity: 0.5,
-          '&:hover': { opacity: 1 },
+          zIndex: 1,
+          '&:hover': {
+            opacity: 0.9,
+            height: 10,
+          },
         }}
       />
     )}
