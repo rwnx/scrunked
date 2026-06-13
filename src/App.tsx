@@ -100,6 +100,7 @@ const App: FunctionComponent = () => {
   const waveformRef = useRef<HTMLDivElement | null>(null)
   const [waveform, setWaveform] = useState<WaveSurfer | undefined>()
   const [seekPosition, setSeekPosition] = useState(0)
+  const [reverseProgress, setReverseProgress] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const playbackStartTimeRef = useRef(0)
@@ -152,9 +153,27 @@ const App: FunctionComponent = () => {
     const interval = setInterval(() => {
       if (player.state === 'started' && settings.duration) {
         const elapsed = Tone.now() - playbackStartTimeRef.current
-        const pos = settings.reverseEnabled
-          ? Math.max(0, playbackOffsetRef.current - elapsed)
-          : Math.min(playbackOffsetRef.current + elapsed, settings.duration)
+        let pos: number
+        let revProgress = 0
+        if (settings.reverseEnabled) {
+          pos = playbackOffsetRef.current - elapsed
+          if (pos <= 0) {
+            if (settings.loop) {
+              pos += settings.duration
+              playbackOffsetRef.current = pos
+              playbackStartTimeRef.current = Tone.now()
+              player.stop(); player.start(0, pos)
+            } else {
+              pos = 0
+              player.stop()
+              setIsPlaying(false)
+            }
+          }
+          revProgress = (playbackOffsetRef.current - pos) / Math.max(0.001, playbackOffsetRef.current)
+          setReverseProgress(Math.min(1, revProgress))
+        } else {
+          pos = Math.min(playbackOffsetRef.current + elapsed, settings.duration)
+        }
         waveform.seekTo(pos / settings.duration)
       }
     }, 50)
@@ -174,7 +193,7 @@ const App: FunctionComponent = () => {
         player.stop(); await player.load(url); player.start()
         playbackStartTimeRef.current = Tone.now()
         playbackOffsetRef.current = 0
-        setSeekPosition(0); setIsPlaying(true)
+        setSeekPosition(0); setIsPlaying(true); setReverseProgress(0)
         const dur = player.buffer.duration
         let bpmDetected: number | null = null
         try {
@@ -285,7 +304,7 @@ const App: FunctionComponent = () => {
             </Tooltip>
           </Box>
           <FileDropArea hasFile={hasFile} fileName={settings.file?.name} onFile={(file) => onUpdate({ nextFile: file })} />
-          <TransportBar isPlaying={isPlaying} isExporting={isExporting} duration={settings.duration} hasFile={hasFile} waveformRef={waveformRef} onPlayPause={handlePlayPause} onExport={handleExport} />
+          <TransportBar isPlaying={isPlaying} isExporting={isExporting} duration={settings.duration} hasFile={hasFile} waveformRef={waveformRef} onPlayPause={handlePlayPause} onExport={handleExport} reverseEnabled={settings.reverseEnabled} reverseProgress={reverseProgress} />
           {hasFile && (
             <Box display="flex" alignItems="center" flexWrap="wrap" sx={{ mt: 1, mb: 1.5, gap: { xs: 1, sm: 1.5 } }}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, fontSize: 12 }}>Tempo</Typography>

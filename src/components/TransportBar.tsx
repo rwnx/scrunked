@@ -16,6 +16,8 @@ interface Props {
   waveformRef: RefObject<HTMLDivElement>
   onPlayPause: () => void
   onExport: () => void
+  reverseEnabled?: boolean
+  reverseProgress?: number
 }
 
 const TransportBar: FunctionComponent<Props> = ({
@@ -26,6 +28,8 @@ const TransportBar: FunctionComponent<Props> = ({
   waveformRef,
   onPlayPause,
   onExport,
+  reverseEnabled = false,
+  reverseProgress = 0,
 }) => {
   if (!hasFile) return null
 
@@ -64,7 +68,25 @@ const TransportBar: FunctionComponent<Props> = ({
         {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
       </Button>
 
-      <Box sx={{ flex: 1, minWidth: 0 }} ref={waveformRef} />
+      <Box sx={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        <Box sx={{ flex: 1, minWidth: 0 }} ref={waveformRef} />
+        {reverseEnabled && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              bottom: 0,
+              width: `${reverseProgress * 100}%`,
+              bgcolor: 'action.selected',
+              borderRadius: '4px 0 0 4px',
+              opacity: 0.25,
+              pointerEvents: 'none',
+              transition: 'width 0.05s linear',
+            }}
+          />
+        )}
+      </Box>
 
       <Typography
         variant="caption"
