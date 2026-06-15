@@ -47,9 +47,9 @@ const FileDropArea: FunctionComponent<Props> = ({ hasFile, fileName, onFile }) =
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 1,
-          px: 1.5,
-          py: 1,
+          gap: 1.25,
+          px: 2,
+          py: 1.25,
           borderRadius: 2,
           bgcolor: `${fileName ? 'primary' : 'action'}.hover`,
           border: '1px solid',

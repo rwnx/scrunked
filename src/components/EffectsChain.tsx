@@ -500,7 +500,7 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
       <Box
         sx={{
           display: 'flex', alignItems: 'center', gap: 1.5,
-          mb: 1, px: 1.5, py: 1,
+          mb: 1.5, px: 1.5, py: 1.25,
           borderRadius: 2, bgcolor: `${speedColor}0a`,
           border: '1px solid', borderColor: settings.speedEnabled ? `${speedColor}55` : 'divider',
           transition: 'all 0.2s',
@@ -595,7 +595,7 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
       <Box
         sx={{
           display: 'flex', alignItems: 'center', gap: 1.5,
-          mb: 1.5, px: 1, py: 0.5,
+          mb: 2, px: 1.5, py: 1,
           borderRadius: 2, bgcolor: `${reverseColor}0a`,
           border: '1px solid', borderColor: settings.reverseEnabled ? `${reverseColor}55` : 'divider',
         }}
@@ -631,7 +631,17 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
       </Box>
 
       {/* Section header */}
-      <Box display="flex" alignItems="center" sx={{ mb: 1.5 }}>
+      <Box display="flex" alignItems="center" sx={{ mb: 2, mt: 0.5 }}>
+        <Box
+          sx={{
+            width: 3,
+            height: 14,
+            borderRadius: 1.5,
+            bgcolor: 'primary.main',
+            mr: 1,
+            flexShrink: 0,
+          }}
+        />
         <Typography
           variant="subtitle2"
           sx={{
@@ -639,13 +649,13 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
             fontSize: 11,
             textTransform: 'uppercase',
             letterSpacing: 1.2,
-            color: 'text.secondary',
+            color: 'text.primary',
           }}
         >
           Effects
         </Typography>
         <Box sx={{ flex: 1, ml: 1.5, height: 1, bgcolor: 'divider' }} />
-        <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled', ml: 1, fontFamily: 'monospace' }}>
+        <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled', ml: 1, fontFamily: 'monospace', fontWeight: 600 }}>
           {activeChain}
         </Typography>
       </Box>
@@ -653,8 +663,8 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
       {/* Cards grid */}
       <Box sx={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-        gap: 1,
+        gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+        gap: 1.5,
         alignItems: 'stretch',
       }}>
         {effectInstances.map((inst, index) => renderEffect(inst, index))}
@@ -669,23 +679,25 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            py: { xs: 1, sm: 1.25 },
+            py: { xs: 1.25, sm: 1.5 },
             px: { xs: 0.5, sm: 0.75 },
             border: '1px dashed',
             borderColor: 'divider',
             borderRadius: 2.5,
             cursor: 'pointer',
             transition: 'all 0.2s',
+            bgcolor: 'action.hover',
             '&:hover': {
               borderColor: 'primary.main',
-              bgcolor: 'action.hover',
+              bgcolor: 'action.selected',
+              transform: 'translateY(-1px)',
             },
           }}
           onClick={(e: any) => setAddAnchorEl(e.currentTarget)}
 
         >
-          <AddIcon sx={{ fontSize: 20, color: 'text.disabled', mb: 0.5 }} />
-          <Typography variant="caption" sx={{ fontSize: 9, fontWeight: 600, color: 'text.disabled' }}>
+          <AddIcon sx={{ fontSize: 22, color: 'primary.main', mb: 0.5 }} />
+          <Typography variant="caption" sx={{ fontSize: 10, fontWeight: 700, color: 'text.secondary', letterSpacing: 0.3 }}>
             Add Effect
           </Typography>
         </Card>

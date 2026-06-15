@@ -327,8 +327,8 @@ const App: FunctionComponent = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box display="flex" justifyContent="center" alignItems="center" flexDirection="column" minHeight="100dvh" sx={{ overflow: 'auto', bgcolor: 'background.default', py: 2 }}>
-        <Card sx={{ maxWidth: 1400, width: '100%', mx: { xs: 1, sm: 2 }, p: { xs: 1.5, sm: 2.5 }, overflow: 'hidden' }}>
-          <Box display="flex" alignItems="center" flexWrap="wrap" gap={1} sx={{ mb: 1.5 }}>
+        <Card sx={{ maxWidth: 1400, width: '100%', mx: { xs: 1, sm: 2 }, p: { xs: 2, sm: 3 }, overflow: 'hidden' }}>
+          <Box display="flex" alignItems="center" flexWrap="wrap" gap={1} sx={{ mb: 2.5 }}>
             <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
               <PlayArrowIcon sx={{ fontSize: 20, color: '#fff' }} />
             </Box>
@@ -342,25 +342,26 @@ const App: FunctionComponent = () => {
           <FileDropArea hasFile={hasFile} fileName={settings.file?.name} onFile={(file) => onUpdate({ nextFile: file })} />
           <TransportBar isPlaying={isPlaying} isExporting={isExporting} duration={settings.duration} hasFile={hasFile} waveformRef={waveformRef} onPlayPause={handlePlayPause} onExport={handleExport} reverseEnabled={isReverseActive} reverseProgress={reverseProgress} />
           {hasFile && (
-            <Box display="flex" alignItems="center" flexWrap="wrap" sx={{ mt: 1, mb: 1.5, gap: { xs: 1, sm: 1.5 } }}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, fontSize: 12 }}>Tempo</Typography>
-              <Box display="flex" alignItems="center" gap={0.5} sx={{ px: 1, py: 0.3, borderRadius: 1.5, bgcolor: 'action.hover' }}>
+            <Box display="flex" alignItems="center" flexWrap="wrap" sx={{ mt: 1.5, mb: 2, gap: { xs: 1, sm: 1.5 } }}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8 }}>Tempo</Typography>
+              <Box display="flex" alignItems="center" gap={0.75} sx={{ px: 1.25, py: 0.4, borderRadius: 1.5, bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider' }}>
                 <Typography variant="caption" sx={{ fontWeight: 700, fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>{settings.bpm}</Typography>
-                <Typography variant="caption" sx={{ fontSize: 11, color: 'text.secondary' }}>bpm</Typography>
+                <Typography variant="caption" sx={{ fontSize: 10, color: 'text.disabled', fontWeight: 600 }}>BPM</Typography>
                 {settings.bpmDetected !== null && (
-                  <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', ml: 0.5 }}>
-                    {settings.bpmDetected === settings.bpm ? '✓ detected' : `(detected ${settings.bpmDetected})`}
+                  <Typography variant="caption" sx={{ fontSize: 10, color: settings.bpmDetected === settings.bpm ? 'success.main' : 'text.secondary', ml: 0.25, fontWeight: 600 }}>
+                    {settings.bpmDetected === settings.bpm ? '✓' : `(${settings.bpmDetected})`}
                   </Typography>
                 )}
               </Box>
               <Box display="flex" alignItems="center" gap={0.5}>
                 <Input type="number" value={settings.bpm} onChange={(e: any) => { const v = parseInt(e.currentTarget.value, 10); if (!isNaN(v) && v >= 40 && v <= 300) onUpdate({ bpm: v }) }}
-                  sx={{ width: 60, '& input': { fontSize: 12, py: 0.3, textAlign: 'center' } }} inputProps={{ min: 40, max: 300, step: 1 }} />
-                <Button size="small" variant="outlined" sx={{ fontSize: 10, py: 0.2, minWidth: 0, whiteSpace: 'nowrap' }}
+                  sx={{ width: 64, '& input': { fontSize: 12, py: 0.4, textAlign: 'center', fontWeight: 600 } }} inputProps={{ min: 40, max: 300, step: 1 }} />
+                <Button size="small" variant="outlined" sx={{ fontSize: 10, py: 0.3, px: 1.25, minWidth: 0, whiteSpace: 'nowrap', fontWeight: 600, borderRadius: 1.5 }}
                   onClick={() => { if (settings.bpmDetected) onUpdate({ bpm: settings.bpmDetected }) }} disabled={!settings.bpmDetected}>Apply</Button>
               </Box>
             </Box>
           )}
+          <Box sx={{ height: 1, bgcolor: 'divider', mx: 0, my: 0.5 }} />
           <EffectsChain settings={settings} onUpdate={onUpdate} />
         </Card>
         <AppFooter />

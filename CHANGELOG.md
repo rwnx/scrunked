@@ -7,6 +7,7 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ### Changed
 
+- **Spacing and layout overhaul** — all sections now have generous, consistent spacing for a cleaner, more professional audio-app look. Outer card padding increased (24px), section margins increased by 25–50%, effect grid gap widened, and effect cards enlarged. Transport bar, file area, speed and reverse controls all have improved internal padding. Added subtle section divider between transport and effects. Tempo section restyled with uppercase label, bordered chip display, and compact detection indicator. "Add Effect" card given a background tint, primary-colored icon, and hover lift for better discoverability. Effects section header now has a primary-color accent bar.
 - **Speed control redesigned** — slider now fills available horizontal space (`flex: 1` instead of `width: 120`) so it's much wider and easier to use. Slider and value display remain visible when speed is disabled (showing the current setting in greyed-out state). Improved mark labels (`.5` → `0.5x`). Larger thumb (14px), hover glow effect, and better value typography with tabular-nums and bold weight.
 
 ## [v0.2.0] - 2026-06-15
