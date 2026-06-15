@@ -500,9 +500,10 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
       <Box
         sx={{
           display: 'flex', alignItems: 'center', gap: 1.5,
-          mb: 1, px: 1, py: 0.5,
+          mb: 1, px: 1.5, py: 1,
           borderRadius: 2, bgcolor: `${speedColor}0a`,
           border: '1px solid', borderColor: settings.speedEnabled ? `${speedColor}55` : 'divider',
+          transition: 'all 0.2s',
         }}
       >
         <Tooltip title="Playback speed (tempo + pitch). Locked at the start of the chain.">
@@ -524,41 +525,70 @@ const EffectsChain: FunctionComponent<Props> = ({ settings, onUpdate }) => {
             fontSize: 10, lineHeight: 1.1, fontWeight: 700,
             letterSpacing: 0.3, textTransform: 'uppercase',
             color: settings.speedEnabled ? speedColor : 'text.disabled',
+            whiteSpace: 'nowrap',
           }}
         >
           Speed
         </Typography>
-        <Box sx={{ flex: 1, minWidth: 0 }} />
-        {settings.speedEnabled && (
-          <>
-            <Slider
-              value={settings.speed}
-              min={0.1}
-              max={2}
-              step={0.01}
-              marks={[
-                { value: 0.5, label: ".5" },
-                { value: 0.733, label: "day" },
-                { value: 1, label: "1x" },
-                { value: 1.364, label: "night" },
-                { value: 2, label: "2x" },
-              ]}
-              sx={{
-                width: 120, py: 0,
-                '& .MuiSlider-track': { border: 'none', bgcolor: speedColor },
-                '& .MuiSlider-thumb': { bgcolor: speedColor, width: 12, height: 12 },
-                '& .MuiSlider-markLabel': { fontSize: 8 },
-              }}
-              onChange={(_, value) => {
-                if (Array.isArray(value)) return
-                onUpdate({ speed: value as number })
-              }}
-            />
-            <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled', fontVariantNumeric: 'tabular-nums', minWidth: 28, textAlign: 'right' }}>
-              {Math.round(settings.speed * 100)}%
-            </Typography>
-          </>
-        )}
+        <Slider
+          value={settings.speed}
+          min={0.1}
+          max={2}
+          step={0.01}
+          marks={[
+            { value: 0.5, label: "0.5x" },
+            { value: 0.733, label: "day" },
+            { value: 1, label: "1x" },
+            { value: 1.364, label: "night" },
+            { value: 2, label: "2x" },
+          ]}
+          sx={{
+            flex: 1, mx: { xs: 0.5, sm: 1 }, py: 0,
+            '& .MuiSlider-track': {
+              border: 'none',
+              bgcolor: settings.speedEnabled ? speedColor : undefined,
+              transition: 'all 0.2s',
+            },
+            '& .MuiSlider-thumb': {
+              bgcolor: settings.speedEnabled ? speedColor : undefined,
+              width: 14,
+              height: 14,
+              '&:hover, &.Mui-active': {
+                boxShadow: `0 0 0 8px ${speedColor}22`,
+              },
+            },
+            '& .MuiSlider-rail': {
+              opacity: settings.speedEnabled ? 0.25 : 0.1,
+            },
+            '& .MuiSlider-mark': {
+              display: settings.speedEnabled ? 'block' : 'none',
+            },
+            '& .MuiSlider-markLabel': {
+              fontSize: 8,
+              color: settings.speedEnabled ? speedColor : 'text.disabled',
+            },
+          }}
+          disabled={!settings.speedEnabled}
+          onChange={(_, value) => {
+            if (Array.isArray(value)) return
+            onUpdate({ speed: value as number })
+          }}
+        />
+        <Typography
+          variant="caption"
+          sx={{
+            fontSize: 11,
+            fontWeight: 700,
+            fontVariantNumeric: 'tabular-nums',
+            color: settings.speedEnabled ? 'text.primary' : 'text.disabled',
+            minWidth: 48,
+            textAlign: 'right',
+            letterSpacing: 0.2,
+            transition: 'color 0.2s',
+          }}
+        >
+          {Math.round(settings.speed * 100)}%
+        </Typography>
       </Box>
 
       {/* Reverse toggle — locked at the start of the effects panel */}

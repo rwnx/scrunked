@@ -5,6 +5,10 @@ These are user-facing changes. To see the changes in the code between versions y
 
 ## [Unreleased]
 
+### Changed
+
+- **Speed control redesigned** — slider now fills available horizontal space (`flex: 1` instead of `width: 120`) so it's much wider and easier to use. Slider and value display remain visible when speed is disabled (showing the current setting in greyed-out state). Improved mark labels (`.5` → `0.5x`). Larger thumb (14px), hover glow effect, and better value typography with tabular-nums and bold weight.
+
 ## [v0.2.0] - 2026-06-15
 
 ### Added
